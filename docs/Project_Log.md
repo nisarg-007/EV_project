@@ -35,4 +35,13 @@
 *   **Action:**
     *   Created `data/raw`, `data/processed`, `docs`, `scripts`.
     *   Moved all artifacts to appropriate subdirectories.
-    *   Force-added Parquet file to git.
+    *   Defined `.gitignore` for vector DB and large files.
+
+### 4. **RAG Pipeline Implementation (Pinecone + Ollama)**
+*   **Method:**
+    *   Switched vector database to **Pinecone (Serverless)**.
+    *   Integrated **Ollama** (`nomic-embed-text`) for local embeddings.
+    *   Updated `scripts/setup_rag.py` to handle embedding generation.
+*   **Action:**
+    *   Configured index: `ev-policy-docs` (768 dim).
+    *   Pipeline ready: Extracts PDF -> Embeds via Ollama -> Upserts to Pinecone.
