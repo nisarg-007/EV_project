@@ -5,3 +5,7 @@ folium
 plotly
 streamlit
 watchdog
+ollama
+pinecone-client>=3.0.0
+pypdf
+python-dotenv
