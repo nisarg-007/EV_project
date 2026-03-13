@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EV Intelligence — Milestone 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════
+           PROJECTOR-OPTIMIZED LIGHT THEME
+           High contrast · Bold text · Back-row readable
+           ═══════════════════════════════════════════════════ */
+        :root {
+            --cyan: #0891b2;
+            --cyan-bright: #06b6d4;
+            --purple: #7c3aed;
+            --pink: #db2777;
+            --blue: #2563eb;
+            --green: #059669;
+            --red: #dc2626;
+            --orange: #ea580c;
+            --text: #1e293b;
+            --text-light: #475569;
+            --bg: #ffffff;
+            --card-bg: #f8fafc;
+            --card-border: #e2e8f0;
+        }
+
+        body { background: var(--bg); margin: 0; }
+
+        .reveal {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text);
+        }
+        .reveal .slide-background-content { background: var(--bg) !important; }
+
+        /* ── CENTERING ── */
+        .reveal .slides { text-align: center; }
+        .reveal .slides section {
+            display: flex !important;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 60px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        /* ── PARTICLE CANVAS ── */
+        #particles-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0; pointer-events: none;
+        }
+
+        /* ── TYPOGRAPHY — BIG & BOLD FOR PROJECTORS ── */
+        .reveal h1, .reveal h2, .reveal h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: none;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            width: 100%;
+            color: var(--text);
+        }
+        .reveal h1 { font-size: 3.8em; font-weight: 900; margin-bottom: 0.2em; }
+        .reveal h2 { font-size: 2.8em; font-weight: 800; margin-bottom: 0.3em; }
+        .reveal h3 { font-size: 1.6em; font-weight: 700; }
+        .reveal p  { font-size: 1.4em; line-height: 1.6; font-weight: 400; color: var(--text); }
+
+        /* ── GRADIENT TEXT (darker, projector-safe) ── */
+        .grad-cyan {
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .grad-purple {
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .grad-fire {
+            background: linear-gradient(135deg, var(--orange), var(--red));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .grad-green {
+            background: linear-gradient(135deg, var(--green), var(--cyan));
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* ── NO NEON GLOW on light theme ── */
+        .neon { text-shadow: none; }
+
+        /* ── GLASS → SOLID CARDS (high contrast) ── */
+        .glass {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 20px;
+            padding: 36px 44px;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+        .glass:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+
+        /* ── STAT GRID ── */
+        .stat-grid { display: flex; justify-content: center; gap: 36px; width: 100%; margin-top: 28px; }
+        .stat-card { text-align: center; flex: 1; }
+        .stat-number { font-family: 'Space Grotesk'; font-size: 4.5em; font-weight: 900; line-height: 1; margin-bottom: 6px; }
+        .stat-label { font-size: 1.1em; color: var(--text-light); font-weight: 500; }
+
+        /* ── COMPANY GRID ── */
+        .company-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; width: 100%; margin-top: 20px; }
+        .company-card {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 16px;
+            padding: 26px 30px;
+            text-align: left;
+            border-left: 6px solid var(--cyan);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .company-card:nth-child(2) { border-left-color: var(--purple); }
+        .company-card:nth-child(3) { border-left-color: var(--pink); }
+        .company-card:nth-child(4) { border-left-color: var(--green); }
+        .company-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+        .company-card h3 { margin: 0 0 8px 0; font-size: 1.35em; color: var(--text); }
+        .company-card p { margin: 0; font-size: 1.1em; color: var(--text-light); font-weight: 500; }
+
+        /* ── FANCY BULLETS ── */
+        .fancy-list { list-style: none; padding: 0; width: 100%; text-align: left; margin-top: 20px; }
+        .fancy-list li {
+            position: relative; padding: 16px 0 16px 40px;
+            font-size: 1.25em; line-height: 1.5;
+            color: var(--text);
+            border-bottom: 2px solid #f1f5f9;
+        }
+        .fancy-list li::before {
+            content: ''; position: absolute; left: 0; top: 24px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+        }
+        .fancy-list li:nth-child(2)::before { background: linear-gradient(135deg, var(--purple), var(--pink)); }
+        .fancy-list li:nth-child(3)::before { background: linear-gradient(135deg, var(--green), var(--blue)); }
+        .fancy-list li strong { color: var(--text); font-weight: 800; }
+
+        /* ── TWO-COL ── */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; width: 100%; margin-top: 20px; }
+        .col-card {
+            background: var(--card-bg); border: 2px solid var(--card-border);
+            border-radius: 16px; padding: 28px 32px; text-align: left;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .col-card h3 { margin: 0 0 12px 0; color: var(--text); }
+        .col-card p { font-size: 1.1em; margin: 0; color: var(--text-light); font-weight: 500; }
+
+        /* ── THREE-COL ── */
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; width: 100%; margin-top: 20px; }
+        .tri-card {
+            background: var(--card-bg); border: 2px solid var(--card-border);
+            border-radius: 16px; padding: 28px 26px; text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .tri-card:hover { transform: translateY(-5px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+        .tri-card .icon { font-size: 2.8em; margin-bottom: 12px; }
+        .tri-card h3 { font-size: 1.25em; margin: 0 0 10px 0; }
+        .tri-card p { font-size: 1em; color: var(--text-light); margin: 0; font-weight: 500; }
+
+        /* ── PILLS (solid & vibrant for projector) ── */
+        .pill { display: inline-block; padding: 8px 22px; border-radius: 999px; font-size: 0.85em; font-weight: 800; margin: 4px 5px; letter-spacing: 1px; }
+        .pill-cyan   { background: #e0f7fa; color: var(--cyan); border: 2px solid var(--cyan); }
+        .pill-purple { background: #ede9fe; color: var(--purple); border: 2px solid var(--purple); }
+        .pill-pink   { background: #fce7f3; color: var(--pink); border: 2px solid var(--pink); }
+        .pill-green  { background: #d1fae5; color: var(--green); border: 2px solid var(--green); }
+        .pill-red    { background: #fee2e2; color: var(--red); border: 2px solid var(--red); }
+
+        /* ── PROBLEM BADGE ── */
+        .problem-badge {
+            display: inline-block; background: linear-gradient(135deg, var(--orange), var(--red));
+            color: #fff; padding: 14px 36px; border-radius: 999px;
+            font-weight: 900; font-size: 1.3em; letter-spacing: 3px; text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(220,38,38,0.25); margin: 16px 0 10px;
+        }
+
+        /* ── QUOTE BLOCK ── */
+        .quote-block {
+            background: #faf5ff;
+            border-left: 6px solid var(--purple); border-radius: 0 16px 16px 0;
+            padding: 28px 40px; margin: 24px 0; font-style: italic;
+            font-size: 1.3em; color: var(--text); text-align: left; width: 100%;
+            box-sizing: border-box; font-weight: 500;
+        }
+
+        /* ── COMPETITOR TABLE ── */
+        .comp-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 16px; font-size: 1.1em; }
+        .comp-table th {
+            background: #f0fdfa; color: var(--cyan); text-align: left;
+            padding: 16px 20px; font-weight: 800; font-size: 1.1em;
+            border-bottom: 3px solid var(--cyan);
+        }
+        .comp-table th:first-child { border-radius: 12px 0 0 0; }
+        .comp-table th:last-child  { border-radius: 0 12px 0 0; }
+        .comp-table td {
+            padding: 14px 20px; border-bottom: 2px solid #f1f5f9;
+            color: var(--text); text-align: left; font-weight: 500;
+        }
+        .comp-table tr:last-child td:first-child { border-radius: 0 0 0 12px; }
+        .comp-table tr:last-child td:last-child  { border-radius: 0 0 12px 0; }
+        .comp-table tr:hover td { background: #f8fafc; }
+        .comp-table .ours { background: #ecfeff; }
+        .comp-table .ours td { color: var(--text); font-weight: 700; }
+        .checkmark { color: var(--green); font-weight: 900; font-size: 1.3em; }
+        .crossmark { color: var(--red); font-weight: 900; font-size: 1.3em; }
+
+        /* ── FLOATING ORBS (subtle pastel on light) ── */
+        .orb { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.15; pointer-events: none; animation: orbFloat 8s ease-in-out infinite alternate; }
+        .orb-1 { width: 500px; height: 500px; background: var(--cyan-bright); top: -150px; right: -80px; }
+        .orb-2 { width: 400px; height: 400px; background: var(--purple); bottom: -120px; left: -60px; animation-delay: 2s; }
+        .orb-3 { width: 350px; height: 350px; background: var(--pink); top: 40%; left: 55%; animation-delay: 4s; }
+        @keyframes orbFloat { from { transform: translate(0,0) scale(1); } to { transform: translate(25px,-35px) scale(1.08); } }
+
+        /* ── FRAGMENT ANIMATIONS ── */
+        .reveal .slides section .fragment.fly-in { opacity:0; transform: translateY(50px); transition: all 0.6s cubic-bezier(0.22,1,0.36,1); }
+        .reveal .slides section .fragment.fly-in.visible { opacity:1; transform: translateY(0); }
+        .reveal .slides section .fragment.scale-in { opacity:0; transform: scale(0.75); transition: all 0.5s cubic-bezier(0.22,1,0.36,1); }
+        .reveal .slides section .fragment.scale-in.visible { opacity:1; transform: scale(1); }
+        .reveal .slides section .fragment.blur-in { opacity:0; filter: blur(14px); transition: all 0.7s ease; }
+        .reveal .slides section .fragment.blur-in.visible { opacity:1; filter: blur(0); }
+
+        /* ── PROGRESS BAR ── */
+        .reveal .progress { height: 5px; }
+        .reveal .progress span { background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink)); }
+        .reveal .controls { color: var(--purple); }
+        .reveal .slide-number { font-family: 'Outfit'; font-size: 16px; color: var(--text-light); font-weight: 700; background: transparent; }
+
+        /* ── SUBTITLE / BYLINE ── */
+        .subtitle { font-size: 1.6em; color: var(--text-light); font-weight: 400; margin-top: 10px; }
+        .byline { font-size: 1.1em; color: var(--text-light); margin-top: 30px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; }
+
+        /* ── WHY-BETTER GRID ── */
+        .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; width: 100%; margin-top: 16px; }
+        .why-card {
+            background: var(--card-bg); border: 2px solid var(--card-border);
+            border-radius: 16px; padding: 26px 30px; text-align: left;
+            border-top: 5px solid var(--cyan);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            transition: transform 0.3s ease;
+        }
+        .why-card:nth-child(2) { border-top-color: var(--purple); }
+        .why-card:nth-child(3) { border-top-color: var(--green); }
+        .why-card:nth-child(4) { border-top-color: var(--pink); }
+        .why-card:hover { transform: translateY(-4px); }
+        .why-card .icon { font-size: 2em; margin-bottom: 8px; }
+        .why-card h3 { margin: 0 0 8px 0; font-size: 1.25em; color: var(--text); }
+        .why-card p { font-size: 1em; color: var(--text-light); margin: 0; font-weight: 500; }
+
+        /* ── SLIDE IMAGES ── */
+        .slide-img {
+            border-radius: 16px;
+            border: 2px solid var(--card-border);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            object-fit: contain;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+        .slide-img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+        }
+        .img-row {
+            display: flex;
+            gap: 28px;
+            width: 100%;
+            align-items: center;
+            margin-top: 16px;
+        }
+        .img-row .text-side { flex: 1; text-align: left; }
+        .img-row .img-side { flex: 1; display: flex; justify-content: center; }
+
+        /* ── Override inline colors from dark theme ── */
+        .reveal strong { color: var(--text) !important; }
+        .reveal em { color: var(--pink) !important; }
+    </style>
+</head>
+<body>
+
+<canvas id="particles-canvas"></canvas>
+
+<div class="reveal">
+<div class="slides">
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 1 — TITLE
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="img-row" style="margin-top:0;">
+        <div class="text-side" style="text-align:center; flex: 1.2;">
+            <div>
+                <span class="pill pill-cyan">MILESTONE 1</span>
+                <span class="pill pill-purple">INDUSTRY ANALYSIS</span>
+                <span class="pill pill-green">BUSINESS CASE</span>
+            </div>
+            <h1 class="grad-cyan neon" style="margin-top: 20px;">AI-Driven EV<br>Intelligence</h1>
+            <p class="subtitle">Bridging the Gap Between<br>Infrastructure & Policy</p>
+            <p class="byline">Somil Doshi &nbsp;·&nbsp; Spring 2026</p>
+        </div>
+        <div class="img-side" style="flex: 0.9;">
+            <img src="img_ev_charging.png" alt="Futuristic EV Charging" class="slide-img" style="width: 100%; max-height: 520px;">
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 2 — THE LANDSCAPE
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <div class="orb orb-3"></div>
+    <h2 class="grad-cyan">The EV Transition Landscape</h2>
+    <p>The shift to electric vehicles is accelerating —<br>but the ecosystem behind it is falling <strong>dangerously behind</strong>.</p>
+    <div class="stat-grid fragment fly-in">
+        <div class="stat-card">
+            <div class="stat-number grad-cyan" data-count="224">0</div>
+            <div class="stat-label">Thousand Registered EVs<br>in Washington State (2024)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number grad-purple">$5B</div>
+            <div class="stat-label">NEVI Federal Charging<br>Infrastructure Funding</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number grad-fire">34%</div>
+            <div class="stat-label">YoY Growth in WA<br>EV Registrations (2023→24)</div>
+        </div>
+    </div>
+    <p class="fragment fly-in" style="color: #64748b; font-style: italic; font-size: 1.15em; margin-top: 20px;">
+        Massive scale. Disjointed execution. A multi-billion dollar opportunity being deployed blindly.
+    </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 3 — TARGET AUDIENCE
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <h2 class="grad-purple">Who Is This For?</h2>
+    <p>We target <strong style="color:#fff;">decision-makers</strong> who allocate capital, design infrastructure, and manage the power grid.</p>
+    <ul class="fancy-list">
+        <li class="fragment fly-in">
+            <strong>Public Sector Planners</strong> — City & State transportation departments deciding where to deploy public chargers equitably across underserved communities.
+        </li>
+        <li class="fragment fly-in">
+            <strong>Utility Executives</strong> — Grid managers who need to forecast localized load spikes <em>before</em> neighborhood transformers physically fail.
+        </li>
+        <li class="fragment fly-in">
+            <strong>Real Estate & Fleet Operators</strong> — Commercial developers and logistics companies calculating ROI on charging hub installations and fleet electrification.
+        </li>
+    </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 4 — TARGET COMPANIES
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <h2 class="grad-cyan">Target Companies & Stakeholders</h2>
+    <div class="company-grid">
+        <div class="company-card fragment fly-in">
+            <h3 class="grad-cyan">⚡ Utility Providers</h3>
+            <p>Pacific Gas & Electric (PG&E) · Seattle City Light · Duke Energy · Puget Sound Energy</p>
+        </div>
+        <div class="company-card fragment fly-in">
+            <h3 class="grad-purple">🔌 Charging Networks</h3>
+            <p>ChargePoint · Electrify America · EVgo · Tesla Supercharger · Blink Charging</p>
+        </div>
+        <div class="company-card fragment fly-in">
+            <h3 style="color:var(--pink);">🏛️ Government Agencies</h3>
+            <p>US Department of Transportation · WSDOT · State Licensing Boards · FHWA</p>
+        </div>
+        <div class="company-card fragment fly-in">
+            <h3 style="color:var(--green);">💼 Advisory & Consulting</h3>
+            <p>McKinsey · Deloitte · Accenture · Specialized green infrastructure consultancies</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 5 — THE CORE PROBLEM
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <div class="orb orb-1" style="opacity:0.08;"></div>
+    <h2 class="grad-fire">The Problem We're Solving</h2>
+    <div class="fragment scale-in">
+        <span class="problem-badge">⚠️ &nbsp;THE DATA DISCONNECT</span>
+    </div>
+    <div class="img-row fragment fly-in" style="margin-top: 14px;">
+        <div class="img-side" style="flex: 0.85;">
+            <img src="img_data_disconnect.png" alt="Data Disconnect" class="slide-img" style="width: 100%; max-height: 380px;">
+        </div>
+        <div class="text-side" style="flex: 1.15;">
+            <div class="glass" style="padding: 28px 32px;">
+                <p style="font-size:1.35em; color: var(--text); font-weight:800; margin: 0 0 14px 0;">
+                    Billions of dollars are being deployed <em style="color:var(--pink);">blindly</em>.
+                </p>
+                <p style="font-size:1.1em; margin: 0 0 12px 0;">
+                    <strong style="color:var(--cyan);">Quantitative data</strong> (Where are the cars?) and
+                    <strong style="color:var(--purple);">qualitative policy</strong> (What grants exist?)
+                    live in <strong>complete isolation</strong>.
+                </p>
+                <p style="font-size:1.05em; color: var(--text-light); margin: 0; font-weight: 500;">
+                    Stakeholders spend <strong>weeks</strong> cross-referencing CSVs with 300-page government PDFs for a single decision.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 6 — CHALLENGE 1
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <span class="pill pill-cyan" style="align-self:flex-start;">CHALLENGE 1</span>
+    <h2 class="grad-cyan" style="text-align:left; align-self:flex-start;">Misallocated Capital</h2>
+    <p style="text-align:left; align-self:flex-start;">Charging stations placed by "gut feeling" or outdated traffic models become <strong>stranded assets</strong> — expensive hardware with zero users.</p>
+    <div class="two-col fragment fly-in">
+        <div class="col-card" style="border-left: 5px solid var(--cyan);">
+            <h3 style="color:var(--cyan); font-size:1.35em;">🎯 The Opportunity</h3>
+            <p>Use hyper-local registration data at the <strong style="color:#fff;">zip-code level</strong> to predict exactly where adoption hotspots are naturally forming — before competitors arrive.</p>
+        </div>
+        <div class="col-card" style="border-left: 5px solid var(--red);">
+            <h3 style="color:var(--red); font-size:1.35em;">🚧 The Barrier</h3>
+            <p>Raw government datasets are noisy, unstructured, and lack any actionable Business Intelligence layer. Nobody can extract insight without serious engineering effort.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 7 — CHALLENGE 2
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <span class="pill pill-purple" style="align-self:flex-start;">CHALLENGE 2</span>
+    <h2 class="grad-purple" style="text-align:left; align-self:flex-start;">Hidden Grid Strain</h2>
+    <div class="img-row">
+        <div class="text-side">
+            <p style="text-align:left; font-size:1.2em;">When 50 households in a single neighborhood each buy an EV, the local utility transformer can <strong style="color:#fff;">physically fail</strong>.</p>
+            <div class="fragment fly-in" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="col-card" style="border-left: 5px solid var(--purple);">
+                    <h3 style="color:var(--purple); font-size:1.2em; margin:0 0 8px 0;">🎯 The Opportunity</h3>
+                    <p>Foresee geographic adoption trends and proactively upgrade infrastructure — <em>before</em> hardware fails.</p>
+                </div>
+                <div class="col-card" style="border-left: 5px solid var(--red);">
+                    <h3 style="color:var(--red); font-size:1.2em; margin:0 0 8px 0;">🚧 The Barrier</h3>
+                    <p>Utilities only discover demand spikes when power draw surges and equipment overloads.</p>
+                </div>
+            </div>
+        </div>
+        <div class="img-side" style="flex: 0.85;">
+            <img src="img_power_grid.png" alt="Smart Grid" class="slide-img fragment fly-in" style="width: 100%; max-height: 440px;">
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 8 — CHALLENGE 3
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <span class="pill pill-pink" style="align-self:flex-start;">CHALLENGE 3</span>
+    <h2 style="background: linear-gradient(135deg, var(--pink), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align:left; align-self:flex-start;">Policy Navigation Nightmare</h2>
+    <p style="text-align:left; align-self:flex-start; font-size:1.3em;">The regulatory landscape is dense, fragmented, and changes every legislative session.</p>
+    <div class="quote-block fragment fly-in">
+        "Is a 2023 Tesla Model Y Long Range eligible for the Clean Alternative Fuel Vehicle credit in King County if used for a commercial fleet?"
+    </div>
+    <div class="fragment fly-in" style="text-align:left; width:100%;">
+        <p style="font-size:1.2em; margin: 0;">
+            <strong style="color:#fff;">The Barrier:</strong> Finding this answer requires a policy expert to manually read through hundreds of pages of dense legislation — leaving <strong style="color:var(--pink);">millions in unclaimed incentives</strong> on the table.
+        </p>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 9 — COMPETITIVE LANDSCAPE (NEW)
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <h2 class="grad-fire">Competitive Landscape</h2>
+    <p style="font-size:1.15em;">Several tools exist — but none combine <strong style="color:#fff;">data analytics + policy intelligence</strong> in a single platform.</p>
+    <div class="fragment fly-in" style="width: 100%;">
+        <table class="comp-table">
+            <thead>
+                <tr>
+                    <th>Solution</th>
+                    <th>Data Analytics</th>
+                    <th>Policy / RAG</th>
+                    <th>Real-Time Chat</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Tableau / Power BI</strong></td>
+                    <td><span class="checkmark">✔</span></td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td>$70+/user/mo</td>
+                </tr>
+                <tr>
+                    <td><strong>NREL AFDC (Gov Tool)</strong></td>
+                    <td><span class="checkmark">✔</span> Limited</td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td>Free</td>
+                </tr>
+                <tr>
+                    <td><strong>McKinsey / Deloitte</strong></td>
+                    <td><span class="checkmark">✔</span></td>
+                    <td><span class="checkmark">✔</span> Manual</td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td>$500k+ projects</td>
+                </tr>
+                <tr>
+                    <td><strong>ChargePoint Analytics</strong></td>
+                    <td><span class="checkmark">✔</span> Proprietary</td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td><span class="crossmark">✘</span></td>
+                    <td>Customer-only</td>
+                </tr>
+                <tr class="ours">
+                    <td><strong style="color:var(--cyan);">🚀 Our Platform</strong></td>
+                    <td><span class="checkmark">✔</span> 276k+ rows</td>
+                    <td><span class="checkmark">✔</span> AI-Powered</td>
+                    <td><span class="checkmark">✔</span> Agentic</td>
+                    <td style="color:var(--green); font-weight:900;">Near-Zero</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 10 — WHY WE'RE BETTER (NEW)
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <h2 class="grad-green">Why We're Different</h2>
+    <p style="font-size:1.15em;">We don't replace existing tools — we build the <strong style="color:#fff;">missing intelligence layer</strong> that none of them offer.</p>
+    <div class="why-grid">
+        <div class="why-card fragment fly-in">
+            <div class="icon">🔒</div>
+            <h3 style="color:var(--cyan);">Privacy-First, Low Cost</h3>
+            <p>Local LLM via Ollama — no data leaves your machine. No API fees. No vendor lock-in. Ideal for government deployments.</p>
+        </div>
+        <div class="why-card fragment fly-in">
+            <div class="icon">🧠</div>
+            <h3 style="color:var(--purple);">Data + Policy Unified</h3>
+            <p>The only platform that answers "Where are the cars?" and "What incentives apply here?" in a single query. No tool-switching.</p>
+        </div>
+        <div class="why-card fragment fly-in">
+            <div class="icon">⚡</div>
+            <h3 style="color:var(--green);">Agentic AI Architecture</h3>
+            <p>LangGraph orchestrator with specialized Router, Data Analyst, and Policy Expert agents — not just a chatbot prompt.</p>
+        </div>
+        <div class="why-card fragment fly-in">
+            <div class="icon">📊</div>
+            <h3 style="color:var(--pink);">Real Data at Scale</h3>
+            <p>Built on 276,000+ real WA DOL government records. K-Means clustering, geospatial analytics, and zip-code-level precision.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 11 — THE SOLUTION
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <div class="orb orb-2" style="opacity:0.08;"></div>
+    <h2 class="grad-cyan">Our Solution: The Intelligence Engine</h2>
+    <div class="img-row" style="margin-top:6px;">
+        <div class="text-side" style="flex:1.1;">
+            <p style="font-size:1.2em;">An AI system that functions as <strong style="color:#fff;">Data Engineer + Policy Expert</strong> — simultaneously.</p>
+            <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+                <div class="col-card fragment fly-in" style="border-left: 5px solid var(--cyan); padding: 18px 22px;">
+                    <h3 style="color:var(--cyan); font-size:1.15em; margin:0 0 6px 0;">📊 Deterministic Analytics</h3>
+                    <p style="font-size:0.95em;">K-Means clustering processes 276k+ real WA DOL records to pinpoint high-demand charger locations.</p>
+                </div>
+                <div class="col-card fragment fly-in" style="border-left: 5px solid var(--purple); padding: 18px 22px;">
+                    <h3 style="color:var(--purple); font-size:1.15em; margin:0 0 6px 0;">🤖 Generative AI (RAG)</h3>
+                    <p style="font-size:0.95em;">A secure, local LLM reads complex policy PDFs — users ask questions in plain English.</p>
+                </div>
+                <div class="col-card fragment fly-in" style="border-left: 5px solid var(--green); padding: 18px 22px;">
+                    <h3 style="color:var(--green); font-size:1.15em; margin:0 0 6px 0;">🖥️ Unified Dashboard</h3>
+                    <p style="font-size:0.95em;">Planners see data and rules on one screen. No spreadsheets. No lawyers.</p>
+                </div>
+            </div>
+            <div class="fragment fly-in" style="margin-top: 14px;">
+                <span class="pill pill-cyan">OLLAMA</span>
+                <span class="pill pill-purple">LANGGRAPH</span>
+                <span class="pill pill-pink">PINECONE</span>
+                <span class="pill pill-green">STREAMLIT</span>
+                <span class="pill pill-cyan">DUCKDB</span>
+            </div>
+        </div>
+        <div class="img-side" style="flex: 0.85;">
+            <img src="img_ai_dashboard.png" alt="AI Dashboard" class="slide-img fragment fly-in" style="width: 100%; max-height: 480px;">
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 12 — MARKET OPPORTUNITY (NEW)
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <h2 class="grad-purple">The Market Opportunity</h2>
+    <div class="stat-grid fragment fly-in">
+        <div class="stat-card">
+            <div class="stat-number grad-cyan">$1.2T</div>
+            <div class="stat-label">Global EV Market<br>Value by 2030</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number grad-purple">100+</div>
+            <div class="stat-label">WA State EV Laws<br>& Incentives (AFDC)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number grad-fire">276k+</div>
+            <div class="stat-label">Real Government Records<br>in Our Dataset</div>
+        </div>
+    </div>
+    <div class="glass fragment fly-in" style="margin-top: 24px;">
+        <p style="font-size:1.25em; margin:0; text-align:center;">
+            A single DC fast charging station costs <strong style="color:var(--pink);">$50k–$250k installed</strong>.<br>
+            Our platform helps ensure each investment is placed where demand actually exists.
+        </p>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 13 — CLOSING
+     ═══════════════════════════════════════════════════════ -->
+<section>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <h1 class="grad-cyan neon fragment blur-in">Why This Works</h1>
+    <p class="fragment fly-in" style="max-width:900px; font-size:1.35em; margin-top: 16px;">
+        By combining <strong style="color:var(--cyan);">Software Engineering</strong> scale with <strong style="color:var(--purple);">Agentic AI</strong> reasoning, we transform a regulatory and operational nightmare into a simple, chat-driven intelligence platform.
+    </p>
+    <p class="fragment scale-in" style="font-family: 'Space Grotesk'; font-size: 2.2em; font-weight: 900; color: var(--text); letter-spacing: 2px; margin-top: 30px;">
+        Better data. &nbsp;Better decisions. &nbsp;Faster deployment.
+    </p>
+    <div class="fragment fly-in" style="margin-top: 36px;">
+        <span class="pill pill-cyan">LOCAL LLM</span>
+        <span class="pill pill-purple">PRIVACY-FIRST</span>
+        <span class="pill pill-green">OPEN SOURCE STACK</span>
+        <span class="pill pill-pink">INTERVIEW-READY</span>
+    </div>
+</section>
+
+</div><!-- .slides -->
+</div><!-- .reveal -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+<script>
+// ── Particle Background ──
+(function() {
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    const COUNT = 70;
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+
+    class P {
+        constructor() { this.reset(); }
+        reset() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 0.35;
+            this.vy = (Math.random() - 0.5) * 0.35;
+            this.r = Math.random() * 2.5 + 1;
+            this.o = Math.random() * 0.25 + 0.08;
+            const c = ['8,145,178','124,58,237','219,39,119','37,99,235'];
+            this.c = c[Math.floor(Math.random() * c.length)];
+        }
+        update() { this.x += this.vx; this.y += this.vy;
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(${this.c},${this.o})`; ctx.fill();
+        }
+    }
+    for (let i = 0; i < COUNT; i++) particles.push(new P());
+    function lines() {
+        for (let i = 0; i < particles.length; i++)
+            for (let j = i+1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+                const d = Math.sqrt(dx*dx + dy*dy);
+                if (d < 150) { ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y);
+                    ctx.lineTo(particles[j].x,particles[j].y);
+                    ctx.strokeStyle = `rgba(8,145,178,${0.08*(1-d/150)})`; ctx.lineWidth=0.8; ctx.stroke(); }
+            }
+    }
+    function loop() { ctx.clearRect(0,0,canvas.width,canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); }); lines(); requestAnimationFrame(loop); }
+    loop();
+})();
+
+// ── Reveal ──
+Reveal.initialize({
+    hash: true,
+    transition: 'slide',
+    transitionSpeed: 'default',
+    backgroundTransition: 'fade',
+    center: false,
+    slideNumber: 'c/t',
+    progress: true,
+    controls: true,
+    controlsTutorial: false,
+    width: 1280,
+    height: 720,
+    margin: 0.04,
+});
+
+// ── Animated counter ──
+Reveal.on('fragmentshown', function(e) {
+    const el = e.fragment.querySelector ? e.fragment.querySelector('[data-count]') : null;
+    if (!el) { const els = e.fragment.querySelectorAll ? e.fragment.querySelectorAll('[data-count]') : []; els.forEach(doCount); return; }
+    doCount(el);
+});
+function doCount(el) {
+    if (!el) return;
+    const t = parseInt(el.getAttribute('data-count')); let c = 0; const s = Math.ceil(t/35);
+    const iv = setInterval(() => { c += s; if (c >= t) { c = t; clearInterval(iv); } el.textContent = c + 'k+'; }, 30);
+}
+</script>
+</body>
+</html>

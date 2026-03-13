@@ -4,6 +4,7 @@ import ollama
 from pinecone import Pinecone, ServerlessSpec
 from pypdf import PdfReader
 from dotenv import load_dotenv
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Load environment variables
 load_dotenv()
@@ -48,8 +49,13 @@ def setup_pinecone_rag():
         for page in reader.pages:
             text += page.extract_text() + "\n"
         
-        # Simple chunking
-        chunks = [p for p in text.split('\n\n') if len(p) > 50]
+        # Robust Chunking using LangChain
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=50,
+            length_function=len,
+        )
+        chunks = text_splitter.split_text(text)
         print(f"Found {len(chunks)} text chunks to embed.")
         
         vectors = []

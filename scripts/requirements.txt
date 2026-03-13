@@ -9,3 +9,8 @@ ollama
 pinecone-client>=3.0.0
 pypdf
 python-dotenv
+langchain
+langchain-community
+langchain-text-splitters
+langgraph
+duckdb
