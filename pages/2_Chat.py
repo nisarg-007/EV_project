@@ -11,14 +11,20 @@ LLM_AVAILABLE   = False
 
 AGENT_AVAILABLE = False
 
-# Aggressive .env loading
+# Aggressive Secret loading
 from dotenv import load_dotenv
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 _ENV_PATH = os.path.join(_ROOT_DIR, '.env')
 load_dotenv(_ENV_PATH)
-if not os.getenv("PINECONE_API_KEY"):
-    # Try loading it as pinecone.env just in case
-    load_dotenv(os.path.join(_ROOT_DIR, 'pinecone.env'))
+
+# Direct Streamlit Secret injection
+def get_secret(key, default=None):
+    if key in st.secrets:
+        return st.secrets[key]
+    return os.getenv(key, default)
+
+PINECONE_KEY = get_secret("PINECONE_API_KEY")
+GROQ_KEY     = get_secret("GROQ_API_KEY")
 try:
     from langchain_ollama import OllamaEmbeddings, ChatOllama
     from langchain_pinecone import PineconeVectorStore
@@ -57,16 +63,16 @@ try:
             _vectorstore = PineconeVectorStore(
                 index_name="ev-policy-docs",
                 embedding=_embeddings,
-                pinecone_api_key=os.getenv("PINECONE_API_KEY"),
+                pinecone_api_key=PINECONE_KEY,
                 text_key="text",
             )
             
             # 2. Initialize LLM (Groq prioritized, fallback to Ollama)
             _llm = None
-            if os.getenv("GROQ_API_KEY"):
+            if GROQ_KEY:
                 _llm = ChatGroq(
                     model_name="llama-3.1-70b-versatile",
-                    groq_api_key=os.getenv("GROQ_API_KEY"),
+                    groq_api_key=GROQ_KEY,
                     temperature=0.3
                 )
                 _backend_type += " + Cloud (Groq)"
@@ -86,8 +92,8 @@ try:
 
     if not RAG_AVAILABLE:
         # Emergency fallback to pure LLM
-        if os.getenv("GROQ_API_KEY"):
-            _llm = ChatGroq(model_name="llama-3.1-8b-instant", groq_api_key=os.getenv("GROQ_API_KEY"))
+        if GROQ_KEY:
+            _llm = ChatGroq(model_name="llama-3.1-8b-instant", groq_api_key=GROQ_KEY)
             LLM_AVAILABLE = True
             _backend_type = "Cloud (Groq - No RAG)"
         elif os.getenv("OLLAMA_BASE_URL"):
