@@ -147,7 +147,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     st.markdown('<div style="padding:.8rem 1.2rem .3rem;"><div style="color:#6B6B80;font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;font-family:\'IBM Plex Mono\',monospace;">Pages</div></div>', unsafe_allow_html=True)
-    if st.button("◈  Home",      key="n0", use_container_width=True): st.switch_page("app.py")
+    if st.button("◈  Home",      key="n0", use_container_width=True): st.switch_page("streamlit_app.py")
     if st.button("▣  Dashboard", key="n1", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
     if st.button("◉  AI Chat",   key="n2", use_container_width=True): st.switch_page("pages/2_Chat.py")
 

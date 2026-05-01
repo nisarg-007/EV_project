@@ -444,7 +444,7 @@ with st.sidebar:
 
     # Nav
     st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#6B6B80;font-size:0.58rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;font-family:\'IBM Plex Mono\',monospace;">Pages</span></div>', unsafe_allow_html=True)
-    if st.button("◈  Home",      key="n0", use_container_width=True): st.switch_page("app.py")
+    if st.button("◈  Home",      key="n0", use_container_width=True): st.switch_page("streamlit_app.py")
     if st.button("▣  Dashboard", key="n1", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
     if st.button("◉  AI Chat",   key="n2", use_container_width=True): st.switch_page("pages/2_Chat.py")
 

@@ -41,11 +41,11 @@ GROQ_API_KEY=your_groq_key
 
 ### 4. Run Locally
 ```bash
-streamlit run app.py
+streamlit run streamlit_app.py
 ```
 
 ## 📁 Project Structure
-- `app.py`: Main Landing Page
+- `streamlit_app.py`: Main Landing Page
 - `pages/`: 
   - `1_Dashboard.py`: Analytics & Visualizations
   - `2_Chat.py`: AI Assistant Interface
