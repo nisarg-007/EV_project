@@ -205,11 +205,17 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
+total_evs_exec = len(df)
+top_county_exec = df['County'].mode()[0] if not df.empty and 'County' in df.columns else "various regions"
+top_make_exec = df['Make'].mode()[0] if not df.empty and 'Make' in df.columns else "various brands"
+bev_exec = df['Electric Vehicle Type'].str.contains('BEV', na=False).sum()
+bev_pct_exec = (bev_exec / total_evs_exec * 100) if total_evs_exec > 0 else 0
+
+st.markdown(f"""
 <div style="background: linear-gradient(90deg, rgba(204,255,0,0.04), rgba(45,212,191,0.01)); border: 1px solid rgba(204,255,0,0.15); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
     <h3 style="color: #EAEAF0; font-family: 'Syne', sans-serif; font-size: 1.15rem; margin: 0 0 0.5rem 0;">Executive Summary</h3>
     <p style="color: #B0B0C0; font-family: 'Manrope', sans-serif; font-size: 0.9rem; line-height: 1.6; margin: 0;">
-        Washington State's EV landscape is rapidly expanding, with <strong>over a quarter-million active registrations</strong>. The market is overwhelmingly dominated by <strong>Battery Electric Vehicles (BEVs)</strong>, which constitute the vast majority of the fleet. Overall adoption is heavily concentrated in the Greater Seattle area (King County), driven largely by the massive popularity of Tesla models.
+        Based on the current filters, there are <strong>{total_evs_exec:,} active EV registrations</strong> in this dataset. The market is primarily driven by Battery Electric Vehicles (BEVs), which constitute <strong>{bev_pct_exec:.1f}%</strong> of this fleet. Adoption in this specific slice of data is concentrated in <strong>{top_county_exec} County</strong>, strongly led by the popularity of <strong>{top_make_exec}</strong> models.
     </p>
 </div>
 """, unsafe_allow_html=True)
