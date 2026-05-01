@@ -1,4 +1,5 @@
 # 🤖 PARVA — Policy Collection & RAG Pipeline
+**STATUS: ✅ COMPLETED**
 
 **Role:** RAG / Knowledge Engineer  
 **Branch Name:** `parva`  

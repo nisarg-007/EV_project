@@ -1,4 +1,5 @@
 # 🖥️ SOMIL — Streamlit Dashboard & UI Integration
+**STATUS: ✅ COMPLETED**
 
 **Role:** Front-End / Dashboard Lead  
 **Branch Name:** `somil`  

@@ -1,4 +1,5 @@
 # 📊 NISARG — Data Engineering & Analytics
+**STATUS: ✅ COMPLETED**
 
 **Role:** Data Analyst / ML Engineer  
 **Branch Name:** `Nisarg`  
