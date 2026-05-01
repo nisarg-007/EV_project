@@ -1,18 +1,11 @@
-# Washington Zero-Emission Vehicle (ZEV) Mandate
+# Washington Zero-Emission Vehicle (ZEV) Mandate: Advanced Clean Cars II
 
-## Advanced Clean Cars II (ACC II)
-Washington State has officially adopted California’s Advanced Clean Cars II regulations. These rules require an increasing percentage of new light-duty passenger vehicle sales to be zero-emission vehicles (ZEVs).
+## Policy Overview
+Washington has adopted California’s "Advanced Clean Cars II" (ACC II) regulations to accelerate the transition to zero-emission vehicles.
 
-## Key Targets
-- **2026 Model Year:** Implementation of gradual ZEV sales targets begins.
-- **2035 Goal:** 100% of all new passenger cars, trucks, and SUVs sold in Washington must be zero-emission (Battery Electric, Plug-in Hybrid with high range, or Fuel Cell).
-
-## Impact on Manufacturers
-Automakers must meet annual ZEV production and delivery requirements for the state. This is intended to increase the availability and variety of EV models for Washington consumers.
-
-## Supporting Policies
-- **State Fleet Requirements:** State agencies are mandated to transition their light-duty fleets to 100% electric by 2035 and medium/heavy-duty fleets by 2040.
-- **Local Adoption:** Many Washington cities (e.g., Seattle) have adopted even more aggressive targets for local electrification.
-
----
-*Source: Washington State Department of Ecology.*
+## Key Requirements
+- **2026 Milestone:** Starting in model year 2026, 35% of all new light-duty vehicles sold in Washington must be zero-emission (BEV, FCEV) or plug-in hybrids (PHEV).
+- **Annual Increases:** The sales requirement increases each year following 2026.
+- **2035 Target:** By 2035, 100% of new light-duty vehicles sold in Washington must be zero-emission or qualifying plug-in hybrids.
+- **Scope:** The mandate applies to manufacturers/automakers, not individuals. It does not affect the used car market or prohibit the use of existing gas-powered vehicles.
+- **Current Status:** In Q3 2024, ZEV/PHEV sales in Washington already reached approximately 24%, putting the state on track to meet upcoming requirements.

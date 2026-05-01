@@ -15,35 +15,91 @@ try:
 except ImportError:
     pass
 
-if not AGENT_AVAILABLE:
+# Aggressive .env loading
+from dotenv import load_dotenv
+_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+_ENV_PATH = os.path.join(_ROOT_DIR, '.env')
+load_dotenv(_ENV_PATH)
+if not os.getenv("PINECONE_API_KEY"):
+    # Try loading it as pinecone.env just in case
+    load_dotenv(os.path.join(_ROOT_DIR, 'pinecone.env'))
+try:
+    from langchain_ollama import OllamaEmbeddings, ChatOllama
+    from langchain_pinecone import PineconeVectorStore
+    from langchain_groq import ChatGroq
+    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.runnables import RunnablePassthrough
+
+    # 1. Initialize Embeddings (Local-first, then Cloud)
+    _embeddings = None
+    _backend_type = "Local (Ollama)"
+
+    # Try local Ollama first
+    _url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
     try:
-        from dotenv import load_dotenv
-        load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'pinecone.env'))
-        from langchain_ollama import OllamaEmbeddings, ChatOllama
-        from langchain_pinecone import PineconeVectorStore
-        from langchain_core.prompts import ChatPromptTemplate
-        from langchain_core.output_parsers import StrOutputParser
-        from langchain_core.runnables import RunnablePassthrough
-
-        _embeddings  = OllamaEmbeddings(model="nomic-embed-text")
-        _vectorstore = PineconeVectorStore(
-            index_name="ev-policy-docs",
-            embedding=_embeddings,
-            pinecone_api_key=os.getenv("PINECONE_API_KEY"),
-            text_key="text",
+        _embeddings = OllamaEmbeddings(
+            model=os.getenv("EMBEDDING_MODEL", "nomic-embed-text"),
+            base_url=_url
         )
-        _llm = ChatOllama(model="llama3.2", temperature=0.3)
-        RAG_AVAILABLE = True
+        # Test connectivity
+        _embeddings.embed_query("test")
     except Exception:
-        pass
+        _embeddings = None
 
-    if not RAG_AVAILABLE:
+    # Fallback to Sentence-Transformers (Cloud compatible)
+    if not _embeddings:
         try:
-            from langchain_ollama import ChatOllama
-            _llm = ChatOllama(model="llama3.2", temperature=0.3)
-            LLM_AVAILABLE = True
+            _embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            _backend_type = "Cloud (Sentence-Transformers)"
         except Exception:
             pass
+
+    if _embeddings:
+        try:
+            _vectorstore = PineconeVectorStore(
+                index_name="ev-policy-docs",
+                embedding=_embeddings,
+                pinecone_api_key=os.getenv("PINECONE_API_KEY"),
+                text_key="text",
+            )
+            
+            # 2. Initialize LLM (Groq prioritized, fallback to Ollama)
+            _llm = None
+            if os.getenv("GROQ_API_KEY"):
+                _llm = ChatGroq(
+                    model_name="llama-3.1-70b-versatile",
+                    groq_api_key=os.getenv("GROQ_API_KEY"),
+                    temperature=0.3
+                )
+                _backend_type += " + Cloud (Groq)"
+            
+            if not _llm:
+                _llm = ChatOllama(
+                    model="llama3.2", 
+                    temperature=0.3,
+                    base_url=_url
+                )
+                _backend_type += " + Local (Ollama)"
+            
+            RAG_AVAILABLE = True
+        except Exception as e:
+            st.error(f"Backend Init Error: {e}")
+            pass
+
+    if not RAG_AVAILABLE:
+        # Emergency fallback to pure LLM
+        if os.getenv("GROQ_API_KEY"):
+            _llm = ChatGroq(model_name="llama-3.1-8b-instant", groq_api_key=os.getenv("GROQ_API_KEY"))
+            LLM_AVAILABLE = True
+            _backend_type = "Cloud (Groq - No RAG)"
+        elif os.getenv("OLLAMA_BASE_URL"):
+            _llm = ChatOllama(model="llama3.2", base_url=os.getenv("OLLAMA_BASE_URL"))
+            LLM_AVAILABLE = True
+            _backend_type = "Local (Ollama - No RAG)"
+except Exception:
+    pass
 
 
 # ── Hybrid response: Pinecone → Ollama → mock ─────────────────────────────────
@@ -125,80 +181,11 @@ def get_response_stream(query: str):
         except Exception:
             pass
 
-    # 4. Mock fallback
-    for ch in mock_response(query):
-        yield ch
+    # 4. Final Fallback (No AI connection)
+    yield "⚠️ **AI Server Offline**: I cannot connect to Ollama or Groq right now. Please ensure Ollama is running locally or provide a `GROQ_API_KEY` in your `.env` file."
 
 
-def mock_response(query: str) -> str:
-    q = query.lower()
-    if "county" in q and any(w in q for w in ["most","top","highest","best","lead","largest"]):
-        return (
-            "**King County** leads Washington State with over **50,000 EV registrations**, "
-            "followed by **Snohomish** (~35,000) and **Pierce** (~28,000) counties.\n\n"
-            "The Seattle–Bellevue metro corridor accounts for nearly **60%** of all statewide registrations."
-        )
-    elif "tesla" in q:
-        return (
-            "**Tesla** dominates with ~**45% market share** in Washington State.\n\n"
-            "Top models: **Model Y** → **Model 3** → **Model S/X**.\n\n"
-            "Chevrolet (~10%) and Nissan (~8%) are the closest competitors."
-        )
-    elif any(w in q for w in ["make","brand","popular","manufacturer"]):
-        return (
-            "| Rank | Make | Share |\n|------|------|-------|\n"
-            "| 1 | **Tesla** | ~45% |\n| 2 | **Chevrolet** | ~10% |\n"
-            "| 3 | **Nissan** | ~8% |\n| 4 | **Ford** | ~7% |\n| 5 | **BMW** | ~5% |"
-        )
-    elif "range" in q:
-        return (
-            "Average BEV range in WA: **~234 miles**.\n\n"
-            "- Tesla Model S LR — **405 mi**\n- Tesla Model 3 LR — **358 mi**\n"
-            "- Chevy Bolt — **259 mi**\n\nPHEVs: typically **20–50 mi** electric-only."
-        )
-    elif any(w in q for w in ["charging","hotspot","infrastructure","station"]):
-        return (
-            "Top charging hotspots:\n- **Seattle metro** — highest density nationally\n"
-            "- **Bellevue/Redmond/Kirkland** tech corridor\n- **Spokane** — eastern WA\n"
-            "- **I-5 and I-90** highway corridors\n\nWA has **3,200+** public stations."
-        )
-    elif any(w in q for w in ["bev","phev","hybrid","breakdown","split"]):
-        return (
-            "- 🔋 **BEV**: ~79% (~218,000 vehicles)\n- 🔌 **PHEV**: ~21% (~58,000 vehicles)\n\n"
-            "BEV share grew from ~60% (2018) to ~79% today."
-        )
-    elif any(w in q for w in ["adopt","grow","trend","year","growth","history"]):
-        return (
-            "| Year | Cumulative EVs |\n|------|----------------|\n"
-            "| 2015 | ~15,000 |\n| 2018 | ~50,000 |\n| 2020 | ~85,000 |\n"
-            "| 2022 | ~160,000 |\n| 2024 | **276,000+** |"
-        )
-    elif any(w in q for w in ["city","seattle","bellevue","redmond","tacoma"]):
-        return (
-            "| City | EVs |\n|------|-----|\n"
-            "| **Seattle** | ~42,800 |\n| **Bellevue** | ~13,500 |\n"
-            "| **Vancouver** | ~10,300 |\n| **Redmond** | ~9,500 |\n| **Bothell** | ~9,100 |"
-        )
-    elif any(w in q for w in ["cafv","incentive","rebate","tax","credit"]):
-        return (
-            "**WA EV Incentives:**\n- Sales tax exemption on EVs under $45k MSRP\n"
-            "- Up to **$9,000** state rebate (Clean Vehicle Rebate program)\n"
-            "- Federal **$7,500** tax credit (IRA 2022)\n\n"
-            "**CAFV eligibility**: 30+ miles electric range required."
-        )
-    elif any(w in q for w in ["hello","hi","hey","help","what can","capabilities"]):
-        return (
-            "Hi! I'm your **EV Intelligence Assistant** — powered by Pinecone + llama3.2.\n\n"
-            "I can answer questions about:\n"
-            "- 🗺️ County & city hotspots\n- 🚗 Makes & models\n- 📈 Adoption trends\n"
-            "- 🔋 BEV vs PHEV stats\n- ⚡ Charging infrastructure\n- 💰 Incentives & CAFV eligibility"
-        )
-    else:
-        return (
-            f"I can help with Washington State EV data. Try asking about:\n"
-            "- *Which county has the most EVs?*\n- *How has EV adoption grown?*\n"
-            "- *BEV vs PHEV breakdown?*\n- *Average EV range?*"
-        )
+
 
 
 # ── Page config ────────────────────────────────────────────────────────────────

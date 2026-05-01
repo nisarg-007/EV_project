@@ -8,7 +8,10 @@ from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 SCRIPT_DIR_EARLY = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(SCRIPT_DIR_EARLY, '..', 'pinecone.env'))
+load_dotenv()
+# Try specific locations if default fails
+if not os.getenv("PINECONE_API_KEY"):
+    load_dotenv(os.path.join(SCRIPT_DIR_EARLY, '..', '.env'))
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 POLICY_DIR = os.path.join(SCRIPT_DIR, '..', 'data', 'policy')
@@ -117,15 +120,25 @@ def load_pdf_chunks(splitter: RecursiveCharacterTextSplitter) -> list[dict]:
     return chunks
 
 
-def embed_and_upsert(index, chunks: list[dict], batch_size: int = 50):
+def embed_and_upsert(index, chunks: list[dict], batch_size: int = 5):
     """Embed each chunk with Ollama and upsert to Pinecone in batches."""
     vectors = []
-    for chunk_meta in chunks:
+    # Configure ollama client if OLLAMA_BASE_URL is set
+    client = ollama.Client(host=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
+    print(f"  Starting embedding for {len(chunks)} chunks...")
+    for i, chunk_meta in enumerate(chunks):
         try:
-            response = ollama.embeddings(model=EMBEDDING_MODEL, prompt=chunk_meta["text"])
+            print(f"    [{i+1}/{len(chunks)}] Embedding chunk from {chunk_meta['source']}...", end="\r")
+            response = client.embeddings(model=EMBEDDING_MODEL, prompt=chunk_meta["text"])
             embedding = response["embedding"]
+            
+            # Sanitize text for Pinecone metadata (avoid encoding errors)
+            # We replace common problematic characters first, then strip anything else non-ASCII
+            safe_text = chunk_meta["text"].replace('\u2019', "'").replace('\u2018', "'").replace('\u201c', '"').replace('\u201d', '"').replace('\u2013', '-').replace('\u2014', '-').replace('\u2022', '*')
+            safe_text = safe_text.encode('ascii', 'ignore').decode('ascii')
+            
             metadata = {
-                "text": chunk_meta["text"],
+                "text": safe_text,
                 "source": chunk_meta["source"],
             }
             if chunk_meta["page_number"] is not None:
@@ -137,8 +150,9 @@ def embed_and_upsert(index, chunks: list[dict], batch_size: int = 50):
                 "metadata": metadata,
             })
         except Exception as e:
-            print(f"  Embedding error for chunk {chunk_meta['id']} ({chunk_meta['source']}): {e}")
+            print(f"\n  Embedding error for chunk {chunk_meta['id']} ({chunk_meta['source']}): {e}")
 
+    print(f"\n  Embedding complete. Upserting {len(vectors)} vectors in batches of {batch_size}...")
     if not vectors:
         print("No vectors to upsert.")
         return
@@ -147,11 +161,11 @@ def embed_and_upsert(index, chunks: list[dict], batch_size: int = 50):
         batch = vectors[start:start + batch_size]
         try:
             index.upsert(vectors=batch)
-            print(f"  Upserted batch {start // batch_size + 1}: {len(batch)} vectors")
+            print(f"    Upserted batch {start // batch_size + 1}/{ (len(vectors)-1)//batch_size + 1}")
         except Exception as e:
             print(f"  Pinecone upsert error: {e}")
 
-    print(f"Total vectors upserted: {len(vectors)}")
+    print(f"Total vectors in batch process: {len(vectors)}")
 
 
 def setup_pinecone_rag():
