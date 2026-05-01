@@ -277,7 +277,8 @@ with col_map:
                 legend=dict(bgcolor="rgba(10,13,20,.88)",bordercolor="#1E293B",borderwidth=1,font=dict(color="#CBD5E1",size=10)),
             )
             st.plotly_chart(fig_map, use_container_width=True)
-            insight("EV ownership is heavily clustered around major metropolitan areas like Seattle and Bellevue. Proximity to charging infrastructure strongly correlates with adoption density.")
+            top_city_map = samp['City'].mode()[0] if 'City' in samp.columns and not samp.empty else "major metropolitan areas"
+            insight(f"Showing {len(samp):,} sampled locations. EV ownership is heavily clustered around {top_city_map}. Proximity to charging infrastructure strongly correlates with adoption density in these hotspots.")
         else:
             st.info("No location data available for current filter.")
 
@@ -345,7 +346,9 @@ if adopt_mode in ("Annual + Cumulative","Cumulative only"):
 fig_trend.update_layout(hovermode='x unified', title=None)
 dt(fig_trend, h=chart_h)
 st.plotly_chart(fig_trend, use_container_width=True)
-insight("The adoption curve shows a rapid exponential acceleration post-2018. New registrations are doubling roughly every 2.5 years, largely driven by tax incentives and expanded charging networks.")
+if not yearly.empty:
+    peak_year = yearly.loc[yearly['Registrations'].idxmax()]['Model Year']
+    insight(f"The adoption curve shows an acceleration leading up to a peak around {peak_year}. New registrations generally double rapidly, largely driven by tax incentives and expanded charging networks.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 3 — BEV vs PHEV stacked area  +  CAFV donut
@@ -427,7 +430,15 @@ with col_pie:
         fig_pie.update_layout(showlegend=False)
         dt(fig_pie, h=chart_h)
     st.plotly_chart(fig_pie, use_container_width=True)
-    insight("Battery Electric Vehicles (BEVs) drastically dominate Plug-in Hybrids (PHEVs), reflecting consumer preference for fully electric driving and improving battery ranges.")
+    if not counts.empty:
+        bev_count = counts.loc[counts['Type']=='BEV', 'Count'].sum() if 'BEV' in counts['Type'].values else 0
+        phev_count = counts.loc[counts['Type']=='PHEV', 'Count'].sum() if 'PHEV' in counts['Type'].values else 0
+        if bev_count > phev_count:
+            insight(f"Battery Electric Vehicles (BEVs) dominate with {bev_count:,} registrations compared to {phev_count:,} PHEVs, reflecting consumer preference for fully electric driving.")
+        elif phev_count > bev_count:
+            insight(f"Plug-in Hybrids (PHEVs) lead in this selection with {phev_count:,} registrations versus {bev_count:,} BEVs, often preferred for flexibility without range anxiety.")
+        else:
+            insight(f"BEVs and PHEVs are split relatively evenly in this specific slice of data.")
 
 with col_makes:
     section("Top EV Makes")
@@ -445,7 +456,10 @@ with col_makes:
         fig_make.update_layout(yaxis=dict(categoryorder='total ascending'),coloraxis_showscale=False)
     dt(fig_make, h=chart_h)
     st.plotly_chart(fig_make, use_container_width=True)
-    insight("Tesla is the undisputed market leader in Washington State. Exploring other makes reveals a competitive secondary market led by Nissan and Chevrolet.")
+    if not mdata.empty:
+        top_make = mdata.iloc[0]['Make']
+        runner_up = mdata.iloc[1]['Make'] if len(mdata) > 1 else "other competitors"
+        insight(f"{top_make} is the undisputed market leader in this selection. Exploring other makes reveals a competitive secondary market led by {runner_up}.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 5 — TOP CITIES
@@ -468,7 +482,9 @@ else:
     fig_city.update_layout(paper_bgcolor="#0A0D14", font_color="#CBD5E1", height=chart_h,
                             margin=dict(l=0,r=0,t=10,b=0))
 st.plotly_chart(fig_city, use_container_width=True)
-insight("Seattle drastically leads municipal EV adoption, functioning as the primary tech and infrastructure hub driving the state's transition to electric fleets.")
+if not cdata2.empty:
+    top_city = cdata2.iloc[0]['City']
+    insight(f"{top_city} drastically leads municipal EV adoption in this subset, functioning as a primary hub driving the transition to electric fleets.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 6 — ELECTRIC RANGE DISTRIBUTION (BEV)
@@ -497,7 +513,10 @@ fig_rng.update_layout(showlegend=False, xaxis=dict(tickangle=-30),
                        yaxis=dict(title='Electric Range (mi)'))
 dt(fig_rng, h=chart_h)
 st.plotly_chart(fig_rng, use_container_width=True)
-insight("Tesla exhibits consistent high-range performance, while older models and niche urban EV brands display tighter clusters around 100-150 miles.")
+if not bev_df.empty:
+    avg_range = bev_df['Electric Range'].mean()
+    top_rng_make = bev_df.groupby('Make')['Electric Range'].mean().idxmax() if len(bev_df)>0 else "Various"
+    insight(f"The average electric range for this selection is {avg_range:.0f} miles. Brands like {top_rng_make} exhibit higher-than-average range capabilities, addressing range anxiety for consumers.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 7 — MAKE × MODEL YEAR HEATMAP
@@ -523,4 +542,7 @@ fig_hm.update_layout(paper_bgcolor="#0A0D14", plot_bgcolor="#0D1117", font_color
 fig_hm.update_xaxes(side="bottom", tickangle=-30, gridcolor="#1A2236")
 fig_hm.update_yaxes(gridcolor="#1A2236")
 st.plotly_chart(fig_hm, use_container_width=True)
-insight("The heatmap illustrates the sudden explosion of Tesla Model 3 and Model Y registrations in recent years, overshadowing historical early adopters like the Nissan Leaf.")
+if not hm_df.empty:
+    top_hm_yr = hm_df['Model Year'].mode()[0] if not hm_df.empty else "recent years"
+    top_hm_make = hm_df['Make'].mode()[0] if not hm_df.empty else "leading brands"
+    insight(f"The heatmap illustrates a massive concentration of {top_hm_make} registrations around {top_hm_yr}, highlighting the peak dominance of specific models in this view.")
