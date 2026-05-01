@@ -301,6 +301,9 @@ with col_county:
         fig_cty.update_layout(xaxis=dict(tickangle=-35), coloraxis_showscale=False)
     dt(fig_cty, h=490)
     st.plotly_chart(fig_cty, use_container_width=True)
+    if not cdata.empty:
+        top_county = cdata.iloc[0]['County']
+        insight(f"{top_county} County is the leading administrative region for EV registrations in this selection, strongly influencing state infrastructure planning.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 2 — ADOPTION TREND (full width, interactive)
@@ -379,6 +382,9 @@ with col_area:
     fig_area.update_layout(hovermode='x unified', yaxis_title="% share" if area_pct else "Registrations")
     dt(fig_area, h=chart_h)
     st.plotly_chart(fig_area, use_container_width=True)
+    if not grp.empty:
+        latest_year = grp['Model Year'].max()
+        insight(f"By {latest_year}, the divergence between BEVs and PHEVs is clear, with BEVs continuously widening the gap in consumer adoption over time.")
 
 with col_cafv:
     section("CAFV Eligibility")
@@ -404,6 +410,10 @@ with col_cafv:
         fig_cafv.update_layout(showlegend=False)
         dt(fig_cafv, h=chart_h)
     st.plotly_chart(fig_cafv, use_container_width=True)
+    if not cafv.empty:
+        top_cafv = cafv.iloc[0]['Status']
+        top_cafv_pct = cafv.iloc[0]['Count'] / cafv['Count'].sum() * 100
+        insight(f"'{top_cafv}' is the most common Clean Alternative Fuel Vehicle eligibility status, accounting for roughly {top_cafv_pct:.0f}% of the selected fleet.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 4 — EV TYPE PIE  +  MAKES BAR
