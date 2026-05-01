@@ -1,5 +1,8 @@
-﻿.env
+.env
 __pycache__/
-.DS_Store
+*.pyc
+.streamlit/
 data/raw/
 *.pdf
+.DS_Store
+scratch/
