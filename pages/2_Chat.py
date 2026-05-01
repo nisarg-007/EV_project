@@ -206,30 +206,30 @@ st.set_page_config(layout="wide", page_title="EV Chat", page_icon="🤖", initia
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --bg: #08090F;
-    --surface: #0D1117;
-    --card: #111827;
-    --border: #1A2236;
-    --border2: #243045;
-    --cyan: #00D4FF;
-    --purple: #7C3AED;
+    --bg: #08080C;
+    --surface: #0E0E14;
+    --card: #121218;
+    --border: #1E1E2A;
+    --border2: #2A2A38;
+    --volt: #CCFF00;
+    --ice: #2DD4BF;
+    --ember: #FF6B35;
     --green: #10B981;
-    --amber: #F59E0B;
     --red: #EF4444;
-    --t1: #F8FAFC;
-    --t2: #E2E8F0;
-    --t3: #94A3B8;
-    --t4: #475569;
-    --user-bg: #162032;
-    --user-border: #1E3A5F;
+    --t1: #EAEAF0;
+    --t2: #B0B0C0;
+    --t3: #6B6B80;
+    --t4: #3A3A4E;
+    --user-bg: #14180E;
+    --user-border: #2A3518;
 }
 
 html, body, .main, [data-testid="stAppViewContainer"] {
     background: var(--bg) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif !important;
+    font-family: 'Manrope', -apple-system, sans-serif !important;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -237,6 +237,7 @@ html, body, .main, [data-testid="stAppViewContainer"] {
 .block-container {
     max-width: 780px !important;
     padding: 0 1.25rem 5rem !important;
+    position: relative; z-index: 1;
 }
 
 /* Hide header and sidebar nav */
@@ -249,7 +250,7 @@ header[data-testid="stHeader"] {
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background: #09101A !important;
+    background: #0A0A10 !important;
     border-right: 1px solid var(--border) !important;
 }
 [data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
@@ -260,15 +261,16 @@ section[data-testid="stSidebar"] > div > div > div > div {
 
 /* Sidebar nav buttons */
 div[data-testid="stSidebar"] .stButton > button {
-    background: transparent !important; color: var(--t4) !important;
-    border: 1px solid transparent !important; border-radius: 10px !important;
+    background: transparent !important; color: var(--t3) !important;
+    border: 1px solid transparent !important; border-radius: 8px !important;
     padding: 0.55rem 0.9rem !important; font-weight: 500 !important; font-size: 0.875rem !important;
+    font-family: 'Manrope', sans-serif !important;
     text-align: left !important; width: 100% !important; box-shadow: none !important;
-    letter-spacing: 0 !important; margin-bottom: 2px !important; transition: all 0.15s !important;
+    margin-bottom: 2px !important; transition: all 0.15s !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(0,212,255,0.07) !important; border-color: rgba(0,212,255,0.2) !important;
-    color: var(--cyan) !important; transform: none !important; box-shadow: none !important;
+    background: rgba(204,255,0,0.07) !important; border-color: rgba(204,255,0,0.18) !important;
+    color: var(--volt) !important; transform: none !important; box-shadow: none !important;
 }
 
 /* ── CHAT MESSAGES — Apple/GPT style ── */
@@ -281,9 +283,9 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 
 /* Avatars */
 [data-testid="chatAvatarIcon-user"] {
-    background: linear-gradient(135deg,#7C3AED,#00D4FF) !important;
+    background: linear-gradient(135deg,#CCFF00,#2DD4BF) !important;
     border-radius: 50% !important;
-    box-shadow: 0 2px 8px rgba(124,58,237,0.4) !important;
+    box-shadow: 0 2px 8px rgba(204,255,0,0.3) !important;
 }
 [data-testid="chatAvatarIcon-assistant"] {
     background: #111827 !important;
@@ -304,19 +306,19 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     width: 100% !important;
 }
 
-/* User bubble — blue tint, right-side tail */
+/* User bubble — volt tint, right-side tail */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) [data-testid="stChatMessageContent"] {
     background: var(--user-bg) !important;
     border-color: var(--user-border) !important;
-    border-radius: 20px 20px 4px 20px !important;
+    border-radius: 16px 16px 4px 16px !important;
     color: var(--t1) !important;
 }
 
 /* Assistant bubble — subtle left accent */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
     border-color: var(--border) !important;
-    border-left: 2px solid rgba(0,212,255,0.35) !important;
-    border-radius: 20px 20px 20px 4px !important;
+    border-left: 2px solid rgba(204,255,0,0.25) !important;
+    border-radius: 16px 16px 16px 4px !important;
 }
 
 /* Markdown in bubbles */
@@ -333,18 +335,20 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     margin: 0.6rem 0 !important; font-size: 0.875rem !important; border-radius: 10px !important; overflow: hidden !important;
 }
 [data-testid="stChatMessageContent"] th {
-    background: rgba(0,212,255,0.1) !important; color: #00D4FF !important;
+    background: rgba(204,255,0,0.07) !important; color: #CCFF00 !important;
     padding: 0.45rem 0.8rem !important; border: 1px solid var(--border) !important;
     font-weight: 600 !important; font-size: 0.78rem !important;
     letter-spacing: 0.04em !important; text-transform: uppercase !important;
+    font-family: 'IBM Plex Mono', monospace !important;
 }
 [data-testid="stChatMessageContent"] td {
     padding: 0.4rem 0.8rem !important; border: 1px solid #1A2236 !important; color: var(--t2) !important;
 }
 [data-testid="stChatMessageContent"] tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
 [data-testid="stChatMessageContent"] code {
-    background: rgba(0,212,255,0.09) !important; color: #00D4FF !important;
+    background: rgba(204,255,0,0.07) !important; color: #CCFF00 !important;
     padding: 0.1em 0.45em !important; border-radius: 5px !important; font-size: 0.875em !important;
+    font-family: 'IBM Plex Mono', monospace !important;
 }
 
 /* ── THINKING ANIMATION ── */
@@ -356,7 +360,7 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     display: inline-flex; align-items: center; gap: 5px; padding: 4px 0;
 }
 .thinking-dots span {
-    width: 7px; height: 7px; border-radius: 50%; background: #00D4FF;
+    width: 7px; height: 7px; border-radius: 50%; background: #CCFF00;
     animation: thinking-dot 1.3s ease-in-out infinite;
 }
 .thinking-dots span:nth-child(1) { animation-delay: 0s; }
@@ -373,12 +377,12 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     transition: border-color 0.2s, box-shadow 0.2s !important;
 }
 [data-testid="stChatInput"]:focus-within {
-    border-color: rgba(0,212,255,0.4) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px rgba(0,212,255,0.07) !important;
+    border-color: rgba(204,255,0,0.3) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px rgba(204,255,0,0.05) !important;
 }
 [data-testid="stChatInput"] textarea {
     background: transparent !important; color: var(--t1) !important;
-    font-family: 'Inter', sans-serif !important; font-size: 0.9375rem !important;
+    font-family: 'Manrope', sans-serif !important; font-size: 0.9375rem !important;
     border: none !important; padding: 0.8rem 1.1rem !important; line-height: 1.5 !important;
 }
 [data-testid="stChatInput"] textarea::placeholder { color: var(--t4) !important; }
@@ -392,8 +396,8 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     white-space: nowrap !important; transition: all 0.15s !important; height: auto !important;
 }
 .pill-row .stButton > button:hover {
-    border-color: rgba(0,212,255,0.4) !important; color: var(--cyan) !important;
-    background: rgba(0,212,255,0.06) !important; transform: none !important; box-shadow: none !important;
+    border-color: rgba(204,255,0,0.3) !important; color: var(--volt) !important;
+    background: rgba(204,255,0,0.05) !important; transform: none !important; box-shadow: none !important;
 }
 
 /* ── CLEAR BUTTON ── */
@@ -411,7 +415,7 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.35); }
+::-webkit-scrollbar-thumb:hover { background: rgba(204,255,0,0.35); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -421,25 +425,25 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 with st.sidebar:
     # Logo — flush to top
     st.markdown("""
-    <div style="padding:1.25rem 1.25rem 1rem;border-bottom:1px solid #1A2236;">
+    <div style="padding:1.25rem 1.25rem 1rem;border-bottom:1px solid #1E1E2A;">
         <div style="display:flex;align-items:center;gap:0.7rem;">
-            <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
-                        background:linear-gradient(135deg,#7C3AED,#00D4FF);
+            <div style="width:36px;height:36px;border-radius:8px;flex-shrink:0;
+                        background:linear-gradient(135deg,#CCFF00,#2DD4BF);
                         display:flex;align-items:center;justify-content:center;
-                        font-size:1.1rem;box-shadow:0 4px 12px rgba(124,58,237,0.4);">⚡</div>
+                        font-size:1rem;box-shadow:0 4px 14px rgba(204,255,0,.3);">⚡</div>
             <div>
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.9rem;line-height:1.2;">EV Intelligence</div>
-                <div style="color:#475569;font-size:0.6rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;">AI Assistant</div>
+                <div style="color:#EAEAF0;font-weight:700;font-size:0.88rem;line-height:1.2;font-family:'Syne',sans-serif;">EV Intelligence</div>
+                <div style="color:#6B6B80;font-size:0.58rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">AI Assistant</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # Nav
-    st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Pages</span></div>', unsafe_allow_html=True)
-    if st.button("🏠  Home",      key="n0", use_container_width=True): st.switch_page("app.py")
-    if st.button("📊  Dashboard", key="n1", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
-    if st.button("🤖  AI Chat",   key="n2", use_container_width=True): st.switch_page("pages/2_Chat.py")
+    st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#6B6B80;font-size:0.58rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;font-family:\'IBM Plex Mono\',monospace;">Pages</span></div>', unsafe_allow_html=True)
+    if st.button("◈  Home",      key="n0", use_container_width=True): st.switch_page("app.py")
+    if st.button("▣  Dashboard", key="n1", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
+    if st.button("◉  AI Chat",   key="n2", use_container_width=True): st.switch_page("pages/2_Chat.py")
 
     st.markdown('<div style="height:1px;background:#1A2236;margin:0.6rem 1.25rem;"></div>', unsafe_allow_html=True)
 
@@ -513,13 +517,13 @@ with st.sidebar:
 st.markdown("""
 <div style="padding:1.75rem 0 0.75rem;text-align:center;">
     <div style="display:inline-flex;align-items:center;justify-content:center;
-                width:48px;height:48px;border-radius:15px;margin-bottom:0.85rem;
-                background:linear-gradient(135deg,#7C3AED,#00D4FF);
-                box-shadow:0 6px 20px rgba(124,58,237,0.35);">⚡</div>
-    <h1 style="color:#F8FAFC;font-size:1.5rem;font-weight:700;margin:0 0 0.3rem;letter-spacing:-.4px;">
+                width:48px;height:48px;border-radius:13px;margin-bottom:0.85rem;
+                background:linear-gradient(135deg,#CCFF00,#2DD4BF);
+                box-shadow:0 6px 20px rgba(204,255,0,0.25);">⚡</div>
+    <h1 style="color:#EAEAF0;font-size:1.5rem;font-weight:700;margin:0 0 0.3rem;letter-spacing:-.4px;font-family:'Syne',sans-serif;">
         EV Intelligence Assistant
     </h1>
-    <p style="color:#475569;font-size:0.84rem;margin:0;">
+    <p style="color:#6B6B80;font-size:0.84rem;margin:0;">
         Ask me anything about Washington State electric vehicle data
     </p>
 </div>

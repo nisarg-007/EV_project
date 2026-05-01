@@ -10,241 +10,254 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --bg: #08090F;
-    --surface: #0D1117;
-    --card: #111827;
-    --border: #1A2236;
-    --cyan: #00D4FF;
-    --purple: #7C3AED;
-    --pink: #F72585;
-    --green: #10B981;
-    --t1: #F1F5F9;
-    --t2: #CBD5E1;
-    --t3: #64748B;
-    --t4: #334155;
+    --bg: #08080C;
+    --surface: #0E0E14;
+    --card: #121218;
+    --border: #1E1E2A;
+    --border2: #2A2A38;
+    --volt: #CCFF00;
+    --volt-dim: rgba(204,255,0,0.08);
+    --volt-mid: rgba(204,255,0,0.18);
+    --ember: #FF6B35;
+    --ice: #2DD4BF;
+    --t1: #EAEAF0;
+    --t2: #B0B0C0;
+    --t3: #6B6B80;
+    --t4: #3A3A4E;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, .main, [data-testid="stAppViewContainer"] {
     background: var(--bg) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Manrope', -apple-system, sans-serif !important;
     -webkit-font-smoothing: antialiased;
 }
 
-/* ── Remove ALL default Streamlit top padding ── */
+/* Circuit-grid background */
+[data-testid="stAppViewContainer"]::before {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+        radial-gradient(circle at 1px 1px, rgba(204,255,0,0.04) 1px, transparent 0);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+}
+
 .block-container {
-    max-width: 1400px !important;
+    max-width: 1380px !important;
     padding: 0 2.5rem 3rem !important;
+    position: relative;
+    z-index: 1;
 }
 
-/* ── Hide default header and sidebar nav ── */
-header[data-testid="stHeader"] {
-    display: none !important;
-}
-[data-testid="stSidebarNav"] {
-    display: none !important;
-}
+header[data-testid="stHeader"] { display: none !important; }
+[data-testid="stSidebarNav"] { display: none !important; }
 
-/* ── Sidebar — tight, no wasted space ── */
+/* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background: #09101A !important;
+    background: #0A0A10 !important;
     border-right: 1px solid var(--border) !important;
 }
-[data-testid="stSidebar"] > div:first-child {
-    padding-top: 0 !important;
-}
-/* Kill Streamlit's internal sidebar top padding */
-[data-testid="stSidebarContent"] {
-    padding-top: 0 !important;
-}
+[data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
+[data-testid="stSidebarContent"] { padding-top: 0 !important; }
 section[data-testid="stSidebar"] > div > div > div > div {
-    padding-top: 0 !important;
-    gap: 0 !important;
+    padding-top: 0 !important; gap: 0 !important;
 }
 
-/* ── Sidebar nav buttons — transparent ghost style ── */
+/* Sidebar nav buttons */
 div[data-testid="stSidebar"] .stButton > button {
     background: transparent !important;
     color: var(--t3) !important;
     border: 1px solid transparent !important;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     padding: 0.55rem 0.9rem !important;
     font-weight: 500 !important;
     font-size: 0.875rem !important;
+    font-family: 'Manrope', sans-serif !important;
     text-align: left !important;
     width: 100% !important;
     box-shadow: none !important;
-    letter-spacing: 0 !important;
     margin-bottom: 2px !important;
     transition: all 0.15s ease !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(0,212,255,0.07) !important;
-    border-color: rgba(0,212,255,0.2) !important;
-    color: var(--cyan) !important;
+    background: var(--volt-dim) !important;
+    border-color: var(--volt-mid) !important;
+    color: var(--volt) !important;
     transform: none !important;
     box-shadow: none !important;
 }
 
-/* ── Metrics ── */
+/* ── METRICS ── */
 [data-testid="stMetric"] {
     background: var(--card) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 18px !important;
-    padding: 1.25rem 1.5rem !important;
-    transition: all 0.25s !important;
-    position: relative; overflow: hidden;
+    border-radius: 14px !important;
+    padding: 1.2rem 1.4rem !important;
+    transition: all 0.25s cubic-bezier(.4,0,.2,1) !important;
+    position: relative;
+    overflow: hidden;
 }
 [data-testid="stMetric"]::after {
-    content: ''; position: absolute;
+    content: '';
+    position: absolute;
     top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    background: linear-gradient(90deg, var(--volt), var(--ember));
 }
 [data-testid="stMetric"]:hover {
-    border-color: rgba(0,212,255,0.3) !important;
-    box-shadow: 0 0 24px rgba(0,212,255,0.08), 0 8px 32px rgba(0,0,0,0.3) !important;
+    border-color: rgba(204,255,0,0.25) !important;
+    box-shadow: 0 0 20px rgba(204,255,0,0.06), 0 8px 30px rgba(0,0,0,0.35) !important;
     transform: translateY(-2px) !important;
 }
-[data-testid="stMetricValue"] { color: var(--cyan) !important; font-size: 1.75rem !important; font-weight: 800 !important; }
-[data-testid="stMetricLabel"] { color: var(--t3) !important; font-size: 0.7rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; }
+[data-testid="stMetricValue"] {
+    color: var(--volt) !important;
+    font-size: 1.65rem !important;
+    font-weight: 700 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+[data-testid="stMetricLabel"] {
+    color: var(--t3) !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    font-family: 'Manrope', sans-serif !important;
+}
 
-/* ── Scrollbar ── */
+/* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.4); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(204,255,0,0.35); }
+
+/* Staggered reveal animation */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    # Logo block — zero top margin
     st.markdown("""
     <div style="
         padding: 1.25rem 1.25rem 1rem;
-        border-bottom: 1px solid #1A2236;
+        border-bottom: 1px solid #1E1E2A;
     ">
         <div style="display:flex; align-items:center; gap:0.7rem;">
             <div style="
-                width:36px; height:36px; border-radius:10px; flex-shrink:0;
-                background: linear-gradient(135deg,#7C3AED,#00D4FF);
+                width:36px; height:36px; border-radius:8px; flex-shrink:0;
+                background: linear-gradient(135deg,#CCFF00,#2DD4BF);
                 display:flex; align-items:center; justify-content:center;
-                font-size:1.1rem; box-shadow:0 4px 12px rgba(124,58,237,0.4);
+                font-size:1rem; box-shadow:0 4px 14px rgba(204,255,0,0.3);
             ">⚡</div>
             <div>
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.9rem;line-height:1.2;">EV Intelligence</div>
-                <div style="color:#475569;font-size:0.6rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;">Platform v2.0</div>
+                <div style="color:#EAEAF0;font-weight:700;font-size:0.88rem;line-height:1.2;font-family:'Syne',sans-serif;">EV Intelligence</div>
+                <div style="color:#6B6B80;font-size:0.58rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">Platform v2.0</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Nav section
-    st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Navigation</span></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#6B6B80;font-size:0.58rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;font-family:\'IBM Plex Mono\',monospace;">Navigation</span></div>', unsafe_allow_html=True)
 
-    if st.button("🏠  Home",      key="nav_home", use_container_width=True): st.switch_page("app.py")
-    if st.button("📊  Dashboard", key="nav_dash", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
-    if st.button("🤖  AI Chat",   key="nav_chat", use_container_width=True): st.switch_page("pages/2_Chat.py")
+    if st.button("◈  Home",      key="nav_home", use_container_width=True): st.switch_page("app.py")
+    if st.button("▣  Dashboard", key="nav_dash", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
+    if st.button("◉  AI Chat",   key="nav_chat", use_container_width=True): st.switch_page("pages/2_Chat.py")
 
-    # Divider + dataset stats
     st.markdown(f"""
-    <div style="height:1px;background:#1A2236;margin:0.75rem 1.25rem;"></div>
+    <div style="height:1px;background:#1E1E2A;margin:0.75rem 1.25rem;"></div>
     <div style="padding:0 1.25rem;">
-        <div style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;">Dataset</div>
+        <div style="color:#6B6B80;font-size:0.58rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;font-family:'IBM Plex Mono',monospace;">Dataset</div>
         <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.78rem;">
             <div style="display:flex;justify-content:space-between;">
-                <span style="color:#64748B;">Records</span><span style="color:#00D4FF;font-weight:600;">276,828</span>
+                <span style="color:#6B6B80;">Records</span><span style="color:#CCFF00;font-weight:600;font-family:'IBM Plex Mono',monospace;">276,828</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-                <span style="color:#64748B;">State</span><span style="color:#00D4FF;font-weight:600;">Washington</span>
+                <span style="color:#6B6B80;">State</span><span style="color:#CCFF00;font-weight:600;">Washington</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-                <span style="color:#64748B;">Updated</span><span style="color:#10B981;font-weight:600;">{datetime.now().strftime('%b %d, %Y')}</span>
+                <span style="color:#6B6B80;">Updated</span><span style="color:#2DD4BF;font-weight:600;font-family:'IBM Plex Mono',monospace;">{datetime.now().strftime('%b %d, %Y')}</span>
             </div>
         </div>
     </div>
-    <div style="height:1px;background:#1A2236;margin:0.75rem 1.25rem;"></div>
-    <div style="padding:0.5rem 1.25rem 0;color:#334155;font-size:0.68rem;text-align:center;">Team 19 · EV Intelligence</div>
+    <div style="height:1px;background:#1E1E2A;margin:0.75rem 1.25rem;"></div>
+    <div style="padding:0.5rem 1.25rem 0;color:#3A3A4E;font-size:0.68rem;text-align:center;font-family:'IBM Plex Mono',monospace;">Team 19 · EV Intelligence</div>
     """, unsafe_allow_html=True)
 
 # ── HERO ──────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="
-    position:relative; overflow:hidden;
-    background:linear-gradient(135deg,#0D0A1E 0%,#0A1628 50%,#0D1117 100%);
-    border:1px solid #1A2236; border-radius:24px;
-    padding:4rem 3rem; margin:1.5rem 0 2rem; text-align:center;
-">
-    <div style="position:absolute;top:-80px;left:-80px;width:320px;height:320px;border-radius:50%;
-                background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);pointer-events:none;"></div>
-    <div style="position:absolute;bottom:-80px;right:-80px;width:360px;height:360px;border-radius:50%;
-                background:radial-gradient(circle,rgba(0,212,255,0.12) 0%,transparent 70%);pointer-events:none;"></div>
-    <div style="position:relative;z-index:1;">
-        <div style="display:inline-flex;align-items:center;gap:0.5rem;
-                    background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.18);
-                    border-radius:100px;padding:0.3rem 1rem;margin-bottom:1.5rem;">
-            <span style="width:6px;height:6px;border-radius:50%;background:#00D4FF;
-                         box-shadow:0 0 8px #00D4FF;display:inline-block;flex-shrink:0;"></span>
-            <span style="color:#00D4FF;font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Live Washington State Data</span>
-        </div>
-        <h1 style="color:#F1F5F9;font-size:3.25rem;font-weight:900;margin:0 0 0.75rem;
-                   letter-spacing:-2px;line-height:1.1;">
-            <span style="background:linear-gradient(90deg,#7C3AED,#00D4FF);
-                         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-                         background-clip:text;">EV Intelligence</span><br/>Platform
-        </h1>
-        <p style="color:#64748B;font-size:1.05rem;margin:0 auto;max-width:500px;line-height:1.65;font-weight:400;">
-            Real-time analytics, AI-powered insights, and interactive visualizations for Washington State electric vehicle data.
-        </p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<div style="position:relative;overflow:hidden;background:linear-gradient(145deg,#0C0C12 0%,#0A0E16 40%,#0E0D10 100%);border:1px solid #1E1E2A;border-radius:20px;padding:4.5rem 3rem;margin:1.5rem 0 2rem;text-align:center;">'
+    '<div style="position:absolute;top:-60px;left:-40px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(204,255,0,0.08) 0%,transparent 70%);pointer-events:none;"></div>'
+    '<div style="position:absolute;bottom:-60px;right:-40px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,0.06) 0%,transparent 70%);pointer-events:none;"></div>'
+    '<div style="position:relative;z-index:1;">'
+    '<div style="display:inline-flex;align-items:center;gap:0.5rem;background:rgba(204,255,0,0.06);border:1px solid rgba(204,255,0,0.15);border-radius:100px;padding:0.3rem 1rem;margin-bottom:1.5rem;">'
+    '<span style="width:6px;height:6px;border-radius:50%;background:#CCFF00;box-shadow:0 0 10px #CCFF00;display:inline-block;flex-shrink:0;"></span>'
+    '<span style="color:#CCFF00;font-size:0.7rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;font-family:IBM Plex Mono,monospace;">Live Washington State Data</span>'
+    '</div>'
+    '<h1 style="color:#EAEAF0;font-size:3.5rem;font-weight:800;margin:0 0 0.75rem;letter-spacing:-2.5px;line-height:1.05;font-family:Syne,sans-serif;">'
+    '<span style="background:linear-gradient(90deg,#CCFF00,#2DD4BF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">EV Intelligence</span><br/>Platform</h1>'
+    '<p style="color:#6B6B80;font-size:1rem;margin:0 auto;max-width:520px;line-height:1.7;font-weight:400;">Real-time analytics, AI-powered policy insights, and interactive visualizations for Washington State electric vehicle registration data.</p>'
+    '</div></div>', unsafe_allow_html=True)
+
 
 # ── FEATURE CARDS ─────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 .feat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.25rem; margin-bottom:2rem; }
 .feat-card {
-    background:#0D1117; border:1px solid #1A2236; border-radius:20px;
-    padding:1.75rem; transition:all 0.25s cubic-bezier(0.4,0,0.2,1); position:relative; overflow:hidden;
+    background:#0E0E14; border:1px solid #1E1E2A; border-radius:16px;
+    padding:1.75rem; transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+    position:relative; overflow:hidden;
+    animation: fadeSlideUp 0.6s ease-out backwards;
 }
-.feat-card:hover { border-color:rgba(0,212,255,0.35); transform:translateY(-5px);
-                   box-shadow:0 20px 40px rgba(0,0,0,0.5),0 0 24px rgba(0,212,255,0.07); }
-.feat-badge { width:46px;height:46px;border-radius:13px;display:flex;align-items:center;
-              justify-content:center;font-size:1.35rem;margin-bottom:1rem; }
-.feat-title { font-size:1rem;font-weight:700;color:#F1F5F9;margin-bottom:0.45rem; }
-.feat-desc  { font-size:0.845rem;color:#64748B;line-height:1.6; }
+.feat-card:nth-child(1) { animation-delay: 0.1s; }
+.feat-card:nth-child(2) { animation-delay: 0.2s; }
+.feat-card:nth-child(3) { animation-delay: 0.3s; }
+.feat-card:hover {
+    border-color: rgba(204,255,0,0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 20px rgba(204,255,0,0.04);
+}
+.feat-badge {
+    width:44px;height:44px;border-radius:10px;display:flex;align-items:center;
+    justify-content:center;font-size:1.3rem;margin-bottom:1rem;
+}
+.feat-title { font-size:1rem;font-weight:700;color:#EAEAF0;margin-bottom:0.45rem;font-family:'Syne',sans-serif; }
+.feat-desc  { font-size:0.84rem;color:#6B6B80;line-height:1.65; }
 .feat-link  { display:inline-flex;align-items:center;gap:0.3rem;margin-top:1rem;
-              color:#00D4FF;font-size:0.78rem;font-weight:600;letter-spacing:0.02em; }
+              color:#CCFF00;font-size:0.76rem;font-weight:600;letter-spacing:0.02em;
+              font-family:'IBM Plex Mono',monospace; }
 </style>
 <div class="feat-grid">
     <div class="feat-card">
-        <div class="feat-badge" style="background:rgba(0,212,255,0.1);">📊</div>
+        <div class="feat-badge" style="background:rgba(204,255,0,0.08);">📊</div>
         <div class="feat-title">Interactive Dashboard</div>
-        <div class="feat-desc">Explore EV hotspots, adoption curves, and county-level breakdowns. Every chart has live controls.</div>
+        <div class="feat-desc">Explore EV hotspots, adoption curves, and county-level breakdowns with live Plotly charts and global filters.</div>
         <div class="feat-link">Open Dashboard →</div>
     </div>
     <div class="feat-card">
-        <div class="feat-badge" style="background:rgba(124,58,237,0.1);">🤖</div>
+        <div class="feat-badge" style="background:rgba(45,212,191,0.08);">◉</div>
         <div class="feat-title">AI Assistant</div>
-        <div class="feat-desc">Chat naturally — backed by Pinecone + llama3.2 + nomic-embed RAG pipeline running locally via Ollama.</div>
+        <div class="feat-desc">Ask questions naturally — backed by Pinecone vector search + llama3.2 running locally via Ollama RAG pipeline.</div>
         <div class="feat-link">Start Chatting →</div>
     </div>
     <div class="feat-card">
-        <div class="feat-badge" style="background:rgba(247,37,133,0.1);">⚡</div>
+        <div class="feat-badge" style="background:rgba(255,107,53,0.08);">⚡</div>
         <div class="feat-title">Real-time Insights</div>
-        <div class="feat-desc">276,000+ vehicle registrations across all WA counties with K-Means cluster analysis.</div>
+        <div class="feat-desc">276,000+ vehicle registrations across all WA counties with K-Means cluster analysis and range statistics.</div>
         <div class="feat-link">View Data →</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ── STATS ─────────────────────────────────────────────────────────────────────
-st.markdown('<div style="color:#475569;font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Platform Overview</div>', unsafe_allow_html=True)
+st.markdown('<div style="color:#6B6B80;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;font-family:\'IBM Plex Mono\',monospace;">Platform Overview</div>', unsafe_allow_html=True)
 
 c1, c2, c3, c4 = st.columns(4)
 with c1: st.metric("Total EV Records", "276,828",  delta="Washington State")
@@ -254,15 +267,15 @@ with c4: st.metric("Cluster Segments", "4",         delta="K-Means analysis")
 
 # ── FOOTER ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
-<div style="margin-top:3rem;padding:1.25rem 0;border-top:1px solid #1A2236;
+<div style="margin-top:3rem;padding:1.25rem 0;border-top:1px solid #1E1E2A;
             display:flex;align-items:center;justify-content:space-between;">
-    <div style="color:#334155;font-size:0.75rem;">
-        EV Intelligence Platform, Team 19
+    <div style="color:#3A3A4E;font-size:0.73rem;font-family:'IBM Plex Mono',monospace;">
+        EV Intelligence Platform · Team 19
     </div>
     <div style="display:flex;align-items:center;gap:0.4rem;">
-        <span style="width:6px;height:6px;border-radius:50%;background:#10B981;
-                     box-shadow:0 0 7px #10B981;display:inline-block;"></span>
-        <span style="color:#334155;font-size:0.72rem;">Systems operational</span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#2DD4BF;
+                     box-shadow:0 0 7px #2DD4BF;display:inline-block;"></span>
+        <span style="color:#3A3A4E;font-size:0.72rem;font-family:'IBM Plex Mono',monospace;">Systems operational</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
