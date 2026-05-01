@@ -71,26 +71,31 @@ section[data-testid="stSidebar"] > div > div > div > div {
 
 /* Sidebar nav buttons */
 div[data-testid="stSidebar"] .stButton > button {
-    background: transparent !important;
-    color: var(--t3) !important;
-    border: 1px solid transparent !important;
-    border-radius: 8px !important;
-    padding: 0.55rem 0.9rem !important;
-    font-weight: 500 !important;
-    font-size: 0.875rem !important;
-    font-family: 'Manrope', sans-serif !important;
+    background: rgba(255,255,255,0.03) !important;
+    color: var(--t1) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    border-radius: 12px !important;
+    padding: 0.75rem 1.1rem !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    font-family: 'Syne', sans-serif !important;
+    letter-spacing: 0.03em !important;
     text-align: left !important;
+    justify-content: flex-start !important;
     width: 100% !important;
-    box-shadow: none !important;
-    margin-bottom: 2px !important;
-    transition: all 0.15s ease !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    margin-bottom: 12px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
-    background: var(--volt-dim) !important;
-    border-color: var(--volt-mid) !important;
+    background: linear-gradient(90deg, rgba(204,255,0,0.1), rgba(45,212,191,0.05)) !important;
+    border-color: rgba(204,255,0,0.3) !important;
     color: var(--volt) !important;
-    transform: none !important;
-    box-shadow: none !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(204,255,0,0.1) !important;
+}
+div[data-testid="stSidebar"] .stButton > button:active {
+    transform: translateY(0) !important;
 }
 
 /* ── METRICS ── */
