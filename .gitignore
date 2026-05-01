@@ -1,0 +1,8 @@
+*.csv
+*.parquet
+__pycache__/
+*.DS_Store
+.venv/
+data/vector_db/
+*.env
+.env

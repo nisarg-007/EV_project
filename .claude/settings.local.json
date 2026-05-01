@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import ollama, pinecone, dotenv; print\\('all found'\\)\")",
+      "Bash(/opt/anaconda3/bin/python3.13 -c \"import ollama, pinecone, dotenv, langchain; print\\('all packages found'\\)\")",
+      "Bash(/opt/anaconda3/bin/pip list *)",
+      "Bash(/opt/anaconda3/bin/conda env *)",
+      "Bash(/opt/anaconda3/bin/pip install *)",
+      "Bash(/opt/anaconda3/bin/python3.13 -c \"import ollama, pinecone, dotenv, langchain; print\\('All packages OK'\\)\")",
+      "Bash(/opt/anaconda3/bin/pip uninstall *)",
+      "Bash(curl -s http://localhost:11434/api/tags)",
+      "Bash(python3 -m json.tool)",
+      "Bash(ollama pull *)",
+      "Bash(ollama list *)",
+      "Bash(/opt/anaconda3/bin/python3.13 scripts/setup_rag.py)",
+      "Bash(/opt/anaconda3/bin/python3.13 scripts/rag_query.py \"What EV tax credits are available under the Inflation Reduction Act?\")"
+    ]
+  }
+}
