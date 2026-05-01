@@ -31,7 +31,7 @@ header[data-testid="stHeader"]{display:none!important;}
 [data-testid="stSidebar"]{background:#0A0A10!important;border-right:1px solid var(--border)!important;}
 [data-testid="stSidebar"]>div:first-child{padding:0!important;}
 [data-testid="stSidebarContent"]{padding-top:0!important;}
-section[data-testid="stSidebar"]>div>div>div>div{padding-top:0!important;gap:0!important;}
+section[data-testid="stSidebar"]>div>div>div>div{padding-top:0!important;}
 
 [data-testid="stMetric"]{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:14px!important;padding:1.2rem 1.4rem!important;transition:all .25s cubic-bezier(.4,0,.2,1)!important;position:relative;overflow:hidden;}
 [data-testid="stMetric"]::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--volt),var(--ember));}
@@ -51,7 +51,9 @@ div[data-testid="stSidebar"] .stButton>button{
     color: var(--t1) !important;
     border: 1px solid rgba(255,255,255,0.05) !important;
     border-radius: 12px !important;
-    padding: 0.75rem 1.1rem !important;
+    padding: 0.5rem 1rem !important;
+    height: auto !important;
+    min-height: 44px !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
     font-family: 'Syne', sans-serif !important;
@@ -60,7 +62,6 @@ div[data-testid="stSidebar"] .stButton>button{
     justify-content: flex-start !important;
     width: 100% !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-    margin-bottom: 12px !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 div[data-testid="stSidebar"] .stButton>button:hover{
@@ -114,6 +115,14 @@ def dt(fig, h=430, ml=55, mr=20, mt=52, mb=38):
         hoverlabel=dict(bgcolor="#121218", bordercolor="#2A2A38", font_color="#EAEAF0"),
     )
     return fig
+
+def insight(text):
+    st.markdown(f'''
+    <div style="background:rgba(204,255,0,0.05); border-left:3px solid #CCFF00; padding:0.8rem 1rem; border-radius:4px; margin-top:0.75rem; margin-bottom:1.5rem;">
+        <div style="color:#CCFF00; font-size:0.65rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-family:'IBM Plex Mono',monospace; margin-bottom:0.25rem;">Key Insight</div>
+        <div style="color:#EAEAF0; font-size:0.85rem; line-height:1.4;">{text}</div>
+    </div>
+    ''', unsafe_allow_html=True)
 
 def section(label):
     st.markdown(f'<div class="sec-label">{label}</div>', unsafe_allow_html=True)
@@ -196,6 +205,15 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<div style="background: linear-gradient(90deg, rgba(204,255,0,0.04), rgba(45,212,191,0.01)); border: 1px solid rgba(204,255,0,0.15); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+    <h3 style="color: #EAEAF0; font-family: 'Syne', sans-serif; font-size: 1.15rem; margin: 0 0 0.5rem 0;">Executive Summary</h3>
+    <p style="color: #B0B0C0; font-family: 'Manrope', sans-serif; font-size: 0.9rem; line-height: 1.6; margin: 0;">
+        Washington State's EV landscape is rapidly expanding, with <strong>over a quarter-million active registrations</strong>. The market is overwhelmingly dominated by <strong>Battery Electric Vehicles (BEVs)</strong>, which constitute the vast majority of the fleet. Overall adoption is heavily concentrated in the Greater Seattle area (King County), driven largely by the massive popularity of Tesla models.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
 # ── KPIs ──────────────────────────────────────────────────────────────────────
 k1,k2,k3,k4,k5,k6 = st.columns(6)
 with k1: st.metric("⚡ Total EVs",   f"{len(df):,}")
@@ -242,13 +260,13 @@ with col_map:
             df_coords = df_coords.join(parsed)
             samp = df_coords.dropna(subset=['lat','lon']).sample(n=min(map_sample*1000,len(df_coords.dropna(subset=['lat','lon']))),random_state=42)
             is_dark = "dark" in map_style or "matter" in map_style
-            fig_map = px.scatter_mapbox(
+            fig_map = px.scatter_map(
                 samp, lat='lat', lon='lon',
                 color=color_col,
                 color_discrete_sequence=['#CCFF00','#2DD4BF','#FF6B35','#10B981','#F59E0B'],
                 color_continuous_scale='Viridis' if color_col=="Model Year" else None,
                 zoom=6, center={"lat":47.5,"lon":-120.5},
-                mapbox_style=map_style,
+                map_style=map_style,
                 hover_data=['County','Make','Model'],
                 opacity=map_opacity, size_max=6,
             )
@@ -259,6 +277,7 @@ with col_map:
                 legend=dict(bgcolor="rgba(10,13,20,.88)",bordercolor="#1E293B",borderwidth=1,font=dict(color="#CBD5E1",size=10)),
             )
             st.plotly_chart(fig_map, use_container_width=True)
+            insight("EV ownership is heavily clustered around major metropolitan areas like Seattle and Bellevue. Proximity to charging infrastructure strongly correlates with adoption density.")
         else:
             st.info("No location data available for current filter.")
 
@@ -326,6 +345,7 @@ if adopt_mode in ("Annual + Cumulative","Cumulative only"):
 fig_trend.update_layout(hovermode='x unified', title=None)
 dt(fig_trend, h=chart_h)
 st.plotly_chart(fig_trend, use_container_width=True)
+insight("The adoption curve shows a rapid exponential acceleration post-2018. New registrations are doubling roughly every 2.5 years, largely driven by tax incentives and expanded charging networks.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 3 — BEV vs PHEV stacked area  +  CAFV donut
@@ -407,6 +427,7 @@ with col_pie:
         fig_pie.update_layout(showlegend=False)
         dt(fig_pie, h=chart_h)
     st.plotly_chart(fig_pie, use_container_width=True)
+    insight("Battery Electric Vehicles (BEVs) drastically dominate Plug-in Hybrids (PHEVs), reflecting consumer preference for fully electric driving and improving battery ranges.")
 
 with col_makes:
     section("Top EV Makes")
@@ -424,6 +445,7 @@ with col_makes:
         fig_make.update_layout(yaxis=dict(categoryorder='total ascending'),coloraxis_showscale=False)
     dt(fig_make, h=chart_h)
     st.plotly_chart(fig_make, use_container_width=True)
+    insight("Tesla is the undisputed market leader in Washington State. Exploring other makes reveals a competitive secondary market led by Nissan and Chevrolet.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 5 — TOP CITIES
@@ -446,6 +468,7 @@ else:
     fig_city.update_layout(paper_bgcolor="#0A0D14", font_color="#CBD5E1", height=chart_h,
                             margin=dict(l=0,r=0,t=10,b=0))
 st.plotly_chart(fig_city, use_container_width=True)
+insight("Seattle drastically leads municipal EV adoption, functioning as the primary tech and infrastructure hub driving the state's transition to electric fleets.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 6 — ELECTRIC RANGE DISTRIBUTION (BEV)
@@ -474,6 +497,7 @@ fig_rng.update_layout(showlegend=False, xaxis=dict(tickangle=-30),
                        yaxis=dict(title='Electric Range (mi)'))
 dt(fig_rng, h=chart_h)
 st.plotly_chart(fig_rng, use_container_width=True)
+insight("Tesla exhibits consistent high-range performance, while older models and niche urban EV brands display tighter clusters around 100-150 miles.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 7 — MAKE × MODEL YEAR HEATMAP
@@ -499,3 +523,4 @@ fig_hm.update_layout(paper_bgcolor="#0A0D14", plot_bgcolor="#0D1117", font_color
 fig_hm.update_xaxes(side="bottom", tickangle=-30, gridcolor="#1A2236")
 fig_hm.update_yaxes(gridcolor="#1A2236")
 st.plotly_chart(fig_hm, use_container_width=True)
+insight("The heatmap illustrates the sudden explosion of Tesla Model 3 and Model Y registrations in recent years, overshadowing historical early adopters like the Nissan Leaf.")

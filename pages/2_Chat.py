@@ -256,7 +256,7 @@ header[data-testid="stHeader"] {
 [data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
 [data-testid="stSidebarContent"] { padding-top: 0 !important; }
 section[data-testid="stSidebar"] > div > div > div > div {
-    padding-top: 0 !important; gap: 0 !important;
+    padding-top: 0 !important;
 }
 
 /* Sidebar nav buttons */
@@ -265,7 +265,9 @@ div[data-testid="stSidebar"] .stButton > button {
     color: var(--t1) !important;
     border: 1px solid rgba(255,255,255,0.05) !important;
     border-radius: 12px !important;
-    padding: 0.75rem 1.1rem !important;
+    padding: 0.5rem 1rem !important;
+    height: auto !important;
+    min-height: 44px !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
     font-family: 'Syne', sans-serif !important;
@@ -274,7 +276,6 @@ div[data-testid="stSidebar"] .stButton > button {
     justify-content: flex-start !important;
     width: 100% !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
-    margin-bottom: 12px !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
