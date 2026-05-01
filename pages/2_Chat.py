@@ -15,7 +15,7 @@ AGENT_AVAILABLE = False
 from dotenv import load_dotenv
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 _ENV_PATH = os.path.join(_ROOT_DIR, '.env')
-load_dotenv(_ENV_PATH)
+load_dotenv(_ENV_PATH, override=True)
 
 # Direct Streamlit Secret injection (with safe fallback for local runs)
 def get_secret(key, default=None):
