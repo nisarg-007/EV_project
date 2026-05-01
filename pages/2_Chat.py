@@ -17,10 +17,13 @@ _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 _ENV_PATH = os.path.join(_ROOT_DIR, '.env')
 load_dotenv(_ENV_PATH)
 
-# Direct Streamlit Secret injection
+# Direct Streamlit Secret injection (with safe fallback for local runs)
 def get_secret(key, default=None):
-    if key in st.secrets:
-        return st.secrets[key]
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except FileNotFoundError:
+        pass  # Running locally without secrets.toml
     return os.getenv(key, default)
 
 PINECONE_KEY = get_secret("PINECONE_API_KEY")
