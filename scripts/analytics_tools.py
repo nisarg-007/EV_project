@@ -128,6 +128,18 @@ def get_county_growth_comparison(county1: str, county2: str, parquet_path: str =
     """
     return duckdb.query(query).to_df()
 
+def get_adoption_growth_rate(parquet_path: str = '../data/processed/Electric_Vehicle_Population_Data.parquet') -> pd.DataFrame:
+    """Return the EV adoption growth rate by model year."""
+    query = f"""
+        SELECT 
+            "Model Year", 
+            COUNT(*) as annual_registrations
+        FROM '{parquet_path}'
+        GROUP BY "Model Year"
+        ORDER BY "Model Year" ASC
+    """
+    return duckdb.query(query).to_df()
+
 if __name__ == "__main__":
     # Test our expanded tool suite
     print("--- Top 5 Counties ---")
