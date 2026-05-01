@@ -74,7 +74,7 @@ try:
             _llm = None
             if GROQ_KEY:
                 _llm = ChatGroq(
-                    model_name="llama-3.1-70b-versatile",
+                    model_name="llama-3.3-70b-versatile",
                     groq_api_key=GROQ_KEY,
                     temperature=0.3
                 )
@@ -162,8 +162,9 @@ def get_response_stream(query: str):
             for chunk in chain.stream(query):
                 yield chunk
             return
-        except Exception:
-            pass
+        except Exception as e:
+            yield f"⚠️ **Debug Error (RAG)**: {str(e)}"
+            return
 
     # 2. Ollama only (no Pinecone)
     if LLM_AVAILABLE:
@@ -176,8 +177,9 @@ def get_response_stream(query: str):
             for chunk in chain.stream(query):
                 yield chunk
             return
-        except Exception:
-            pass
+        except Exception as e:
+            yield f"⚠️ **Debug Error (LLM)**: {str(e)}"
+            return
 
     # 4. Final Fallback (No AI connection)
     yield "⚠️ **AI Server Offline**: I cannot connect to Ollama or Groq right now. Please ensure Ollama is running locally or provide a `GROQ_API_KEY` in your `.env` file."
