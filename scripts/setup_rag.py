@@ -1,84 +1,189 @@
 import os
 import time
+import hashlib
 import ollama
 from pinecone import Pinecone, ServerlessSpec
 from pypdf import PdfReader
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# Load environment variables
-load_dotenv()
+SCRIPT_DIR_EARLY = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(SCRIPT_DIR_EARLY, '..', 'pinecone.env'))
 
-# Configuration
-DOCS_DIR = '../docs'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+POLICY_DIR = os.path.join(SCRIPT_DIR, '..', 'data', 'policy')
+RAW_DIR = os.path.join(SCRIPT_DIR, '..', 'data', 'raw')
 INDEX_NAME = "ev-policy-docs"
-EMBEDDING_MODEL = "nomic-embed-text" # Default robust local model
-VECTOR_DIMENSION = 768 # nomic-embed-text outputs 768 dimensions
+EMBEDDING_MODEL = "nomic-embed-text"
+VECTOR_DIMENSION = 768
 
-def setup_pinecone_rag():
-    # 1. Initialize Pinecone
+
+def get_pinecone_index():
     api_key = os.getenv("PINECONE_API_KEY")
     if not api_key:
-        print("Error: PINECONE_API_KEY not found in environment.")
-        return
+        raise EnvironmentError("PINECONE_API_KEY not found in environment.")
 
     pc = Pinecone(api_key=api_key)
 
-    # 2. Check/Create Index
     if INDEX_NAME not in pc.list_indexes().names():
         print(f"Creating index: {INDEX_NAME}...")
         pc.create_index(
             name=INDEX_NAME,
-            dimension=VECTOR_DIMENSION, 
+            dimension=VECTOR_DIMENSION,
             metric="cosine",
-            spec=ServerlessSpec(
-                cloud="aws",
-                region="us-east-1"
-            )
+            spec=ServerlessSpec(cloud="aws", region="us-east-1")
         )
-        time.sleep(1) 
+        time.sleep(2)
 
     index = pc.Index(INDEX_NAME)
-    print(f"Connected to Pinecone Index: {INDEX_NAME}")
+    print(f"Connected to Pinecone index: {INDEX_NAME}")
+    return index
 
-    # 3. Process & Embed Document
-    pdf_path = os.path.join(DOCS_DIR, 'EV_Project_Plan.pdf')
-    if os.path.exists(pdf_path):
-        reader = PdfReader(pdf_path)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-        
-        # Robust Chunking using LangChain
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
-            length_function=len,
-        )
-        chunks = text_splitter.split_text(text)
-        print(f"Found {len(chunks)} text chunks to embed.")
-        
-        vectors = []
-        for i, chunk in enumerate(chunks):
-            try:
-                # Generate Embedding using Ollama
-                response = ollama.embeddings(model=EMBEDDING_MODEL, prompt=chunk)
-                embedding = response["embedding"]
-                
-                vectors.append({
-                    "id": f"plan_chunk_{i}",
-                    "values": embedding,
-                    "metadata": {"text": chunk, "source": "EV_Project_Plan.pdf"}
+
+def stable_chunk_id(source: str, chunk_index: int) -> str:
+    """Generate a collision-safe ID from filename + chunk index."""
+    key = f"{source}::{chunk_index}"
+    return hashlib.md5(key.encode()).hexdigest()
+
+
+def load_markdown_chunks(splitter: RecursiveCharacterTextSplitter) -> list[dict]:
+    """Read all .md files from data/policy/ and return chunk dicts."""
+    chunks = []
+    policy_dir = os.path.realpath(POLICY_DIR)
+    if not os.path.isdir(policy_dir):
+        print(f"Warning: policy directory not found: {policy_dir}")
+        return chunks
+
+    for filename in sorted(os.listdir(policy_dir)):
+        if not filename.endswith('.md'):
+            continue
+        filepath = os.path.join(policy_dir, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                text = f.read().strip()
+            if not text:
+                print(f"Skipping empty file: {filename}")
+                continue
+            for i, chunk in enumerate(splitter.split_text(text)):
+                chunks.append({
+                    "id": stable_chunk_id(filename, i),
+                    "text": chunk,
+                    "source": filename,
+                    "page_number": None,
                 })
-            except Exception as e:
-                print(f"Error embedding chunk {i}: {e}")
+            print(f"  Loaded {filename}: {i + 1} chunks")
+        except Exception as e:
+            print(f"  Error reading {filename}: {e}")
 
-        # 4. Upsert to Pinecone
-        if vectors:
-            index.upsert(vectors=vectors)
-            print(f"Successfully upserted {len(vectors)} chunks to Pinecone.")
-    else:
-        print(f"Document not found at: {pdf_path}")
+    return chunks
+
+
+def load_pdf_chunks(splitter: RecursiveCharacterTextSplitter) -> list[dict]:
+    """Read all .pdf files from data/raw/ and return chunk dicts."""
+    chunks = []
+    raw_dir = os.path.realpath(RAW_DIR)
+    if not os.path.isdir(raw_dir):
+        print(f"Warning: raw directory not found: {raw_dir}")
+        return chunks
+
+    for filename in sorted(os.listdir(raw_dir)):
+        if not filename.lower().endswith('.pdf'):
+            continue
+        filepath = os.path.join(raw_dir, filename)
+        try:
+            reader = PdfReader(filepath)
+            if not reader.pages:
+                print(f"Skipping empty PDF: {filename}")
+                continue
+
+            chunk_index = 0
+            for page_num, page in enumerate(reader.pages, start=1):
+                page_text = page.extract_text() or ""
+                page_text = page_text.strip()
+                if not page_text:
+                    continue
+                for chunk in splitter.split_text(page_text):
+                    chunks.append({
+                        "id": stable_chunk_id(filename, chunk_index),
+                        "text": chunk,
+                        "source": filename,
+                        "page_number": page_num,
+                    })
+                    chunk_index += 1
+            print(f"  Loaded {filename}: {chunk_index} chunks")
+        except Exception as e:
+            print(f"  Error reading {filename}: {e}")
+
+    return chunks
+
+
+def embed_and_upsert(index, chunks: list[dict], batch_size: int = 50):
+    """Embed each chunk with Ollama and upsert to Pinecone in batches."""
+    vectors = []
+    for chunk_meta in chunks:
+        try:
+            response = ollama.embeddings(model=EMBEDDING_MODEL, prompt=chunk_meta["text"])
+            embedding = response["embedding"]
+            metadata = {
+                "text": chunk_meta["text"],
+                "source": chunk_meta["source"],
+            }
+            if chunk_meta["page_number"] is not None:
+                metadata["page_number"] = chunk_meta["page_number"]
+
+            vectors.append({
+                "id": chunk_meta["id"],
+                "values": embedding,
+                "metadata": metadata,
+            })
+        except Exception as e:
+            print(f"  Embedding error for chunk {chunk_meta['id']} ({chunk_meta['source']}): {e}")
+
+    if not vectors:
+        print("No vectors to upsert.")
+        return
+
+    for start in range(0, len(vectors), batch_size):
+        batch = vectors[start:start + batch_size]
+        try:
+            index.upsert(vectors=batch)
+            print(f"  Upserted batch {start // batch_size + 1}: {len(batch)} vectors")
+        except Exception as e:
+            print(f"  Pinecone upsert error: {e}")
+
+    print(f"Total vectors upserted: {len(vectors)}")
+
+
+def setup_pinecone_rag():
+    try:
+        index = get_pinecone_index()
+    except EnvironmentError as e:
+        print(f"Error: {e}")
+        return
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=50,
+        length_function=len,
+    )
+
+    print("\nLoading markdown policy files...")
+    md_chunks = load_markdown_chunks(splitter)
+
+    print("\nLoading raw PDF files...")
+    pdf_chunks = load_pdf_chunks(splitter)
+
+    all_chunks = md_chunks + pdf_chunks
+    print(f"\nTotal chunks to embed: {len(all_chunks)}")
+
+    if not all_chunks:
+        print("No documents found. Check data/policy/ and data/raw/ directories.")
+        return
+
+    print("\nEmbedding and upserting to Pinecone...")
+    embed_and_upsert(index, all_chunks)
+    print("\nRAG setup complete.")
+
 
 if __name__ == "__main__":
     setup_pinecone_rag()
