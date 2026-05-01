@@ -53,3 +53,38 @@ Until now, they had to:
 
 ### 🌟 Why they will come to us:
 They will come to us for **Precision** and **Velocity**. In the "Gold Rush" of the EV transition, the company that identifies the best charging location first—backed by data and law—is the winner. We provide the "Shovel" for that Gold Rush.
+
+---
+
+## 🛠️ 10. AI Tech Stack Used
+We chose a **"Best-of-Breed"** stack to ensure the platform is scalable, fast, and cost-effective:
+
+*   **LLM Inference**: **Groq (Llama 3.1 70B)** – Provides sub-second response times for complex reasoning.
+*   **Local Fallback**: **Ollama (Llama 3.2)** – Ensures the system remains functional even without an internet connection.
+*   **Vector Database**: **Pinecone (Serverless)** – Industrial-grade retrieval of policy documents.
+*   **Embeddings**: **Sentence-Transformers (`all-MiniLM-L6-v2`)** – High-accuracy semantic search optimized for cloud deployment.
+*   **Data Engine**: **DuckDB + Parquet** – 10x faster than traditional CSV/SQL for analytical queries on 276k records.
+*   **Framework**: **LangChain** – Orchestrates the RAG pipeline and agentic routing.
+*   **Front-End**: **Streamlit** – For a premium, interactive user experience.
+
+## 🏗️ 11. System Architecture
+The platform follows a **Modular AI Architecture**:
+
+1.  **Ingestion Layer**: PDFs and CSVs are cleaned and transformed into Vector Chunks (Pinecone) and Parquet files.
+2.  **Logic Layer (The Brain)**: The AI Agent acts as a router. It classifies user intent (Data vs. Policy).
+3.  **Execution Layer**:
+    *   **Data Analyst**: Runs SQL queries via DuckDB.
+    *   **Policy Expert**: Performs semantic search in Pinecone.
+4.  **Synthesis Layer**: Groq LLM combines raw numbers and legal text into a human-readable response.
+
+## 🚧 12. Challenges & Learning
+*   **The Encoding Nightmare**: We learned that handling real-world government data requires extreme care with character encoding (UTF-8 vs. UTF-16). A single invisible character can break a RAG pipeline.
+*   **Cloud Fallbacks**: We faced a major challenge making a "heavy" local AI app work on a "light" cloud server. Our solution was a **Hybrid Model**: Cloud-based Groq for speed, with local Ollama as a developer-mode fallback.
+*   **Context Window Management**: Balancing 276,000 data rows with 100-page PDFs required us to move away from "putting everything in the prompt" and towards a **Metadata-filtered RAG** approach.
+
+## 📊 13. Data Model Key Insights
+**Why this data particularly?**
+We focused on the **Washington State DOL Dataset** because:
+1.  **High Granularity**: It includes "Electric Utility" and "Legislative District"—the two most critical columns for B2B utility sales.
+2.  **The "Incentive Gap"**: Over 60% of vehicles in the dataset had "Unknown" CAFV eligibility. This provided the perfect **commercial use case** for our AI to "fill in the gaps" using RAG to read the latest eligibility laws.
+3.  **Real-World Scale**: 276k+ records is the "Sweet Spot"—large enough to require professional data engineering (Parquet/DuckDB) but small enough to run on a performant dashboard.
