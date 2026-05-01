@@ -284,7 +284,8 @@ with col_map:
             )
             st.plotly_chart(fig_map, use_container_width=True)
             top_city_map = samp['City'].mode()[0] if 'City' in samp.columns and not samp.empty else "major metropolitan areas"
-            insight(f"Showing {len(samp):,} sampled locations. EV ownership is heavily clustered around {top_city_map}. Proximity to charging infrastructure strongly correlates with adoption density in these hotspots.")
+            city_count = (samp['City'] == top_city_map).sum() if not samp.empty else 0
+            insight(f"Showing {len(samp):,} sampled locations. EV ownership is heavily clustered around <b>{top_city_map}</b> ({city_count:,} points in sample). Proximity to charging infrastructure strongly correlates with adoption density in these hotspots.")
         else:
             st.info("No location data available for current filter.")
 
@@ -309,7 +310,8 @@ with col_county:
     st.plotly_chart(fig_cty, use_container_width=True)
     if not cdata.empty:
         top_county = cdata.iloc[0]['County']
-        insight(f"{top_county} County is the leading administrative region for EV registrations in this selection, strongly influencing state infrastructure planning.")
+        top_county_val = cdata.iloc[0]['EV Count']
+        insight(f"<b>{top_county} County</b> leads this selection with <b>{top_county_val:,} registrations</b>. This region accounts for {(top_county_val/len(df)*100):.1f}% of your current filtered view, making it a critical hub for infrastructure investment.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 2 — ADOPTION TREND (full width, interactive)
@@ -357,7 +359,8 @@ dt(fig_trend, h=chart_h)
 st.plotly_chart(fig_trend, use_container_width=True)
 if not yearly.empty:
     peak_year = yearly.loc[yearly['Registrations'].idxmax()]['Model Year']
-    insight(f"The adoption curve shows an acceleration leading up to a peak around {peak_year}. New registrations generally double rapidly, largely driven by tax incentives and expanded charging networks.")
+    peak_val = yearly['Registrations'].max()
+    insight(f"Adoption peaked in <b>{peak_year}</b> with <b>{peak_val:,} new registrations</b>. The curve shows a <b>{(yearly['Registrations'].pct_change().iloc[-1]*100):.1f}%</b> growth shift in the latest year shown, reflecting high volatility in consumer incentives.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 3 — BEV vs PHEV stacked area  +  CAFV donut
@@ -390,7 +393,8 @@ with col_area:
     st.plotly_chart(fig_area, use_container_width=True)
     if not grp.empty:
         latest_year = grp['Model Year'].max()
-        insight(f"By {latest_year}, the divergence between BEVs and PHEVs is clear, with BEVs continuously widening the gap in consumer adoption over time.")
+        bev_share = grp[(grp['Model Year']==latest_year) & (grp['Type']=='BEV')]['Count'].values[0]
+        insight(f"In <b>{latest_year}</b>, BEV adoption reached <b>{bev_share:.1f}{'%' if area_pct else ' units'}</b>. The widening gap between BEVs and PHEVs indicates a clear market shift toward full electrification rather than hybrid solutions.")
 
 with col_cafv:
     section("CAFV Eligibility")
@@ -474,8 +478,9 @@ with col_makes:
     st.plotly_chart(fig_make, use_container_width=True)
     if not mdata.empty:
         top_make = mdata.iloc[0]['Make']
+        top_val = mdata.iloc[0]['Count']
         runner_up = mdata.iloc[1]['Make'] if len(mdata) > 1 else "other competitors"
-        insight(f"{top_make} is the undisputed market leader in this selection. Exploring other makes reveals a competitive secondary market led by {runner_up}.")
+        insight(f"<b>{top_make}</b> dominates this slice with <b>{top_val:,} vehicles</b>. <b>{runner_up}</b> follows in second place, representing the strongest alternative for consumers in this demographic.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 5 — TOP CITIES
