@@ -9,11 +9,7 @@ AGENT_AVAILABLE = False
 RAG_AVAILABLE   = False
 LLM_AVAILABLE   = False
 
-try:
-    from scripts.agent_workflow import run_agent
-    AGENT_AVAILABLE = True
-except ImportError:
-    pass
+AGENT_AVAILABLE = False
 
 # Aggressive .env loading
 from dotenv import load_dotenv
@@ -114,14 +110,7 @@ def get_response_stream(query: str):
     Generator that yields text chunks so we can stream into st.write_stream.
     Priority: agent_workflow → RAG (Pinecone + Ollama) → Ollama only → mock
     """
-    # 1. Full agent (MD's)
-    if AGENT_AVAILABLE:
-        result = run_agent(query)
-        for ch in result:
-            yield ch
-        return
-
-    # 2. RAG — search Pinecone first, then let Ollama answer with context
+    # 1. RAG — search Pinecone first, then let Ollama answer with context
     if RAG_AVAILABLE:
         try:
             retriever = _vectorstore.as_retriever(search_kwargs={"k": 4})
@@ -167,7 +156,7 @@ def get_response_stream(query: str):
         except Exception:
             pass
 
-    # 3. Ollama only (no Pinecone)
+    # 2. Ollama only (no Pinecone)
     if LLM_AVAILABLE:
         try:
             prompt = ChatPromptTemplate.from_template(
@@ -451,10 +440,7 @@ with st.sidebar:
     st.markdown('<div style="height:1px;background:#1A2236;margin:0.6rem 1.25rem;"></div>', unsafe_allow_html=True)
 
     # Backend status
-    if AGENT_AVAILABLE:
-        status_bg, status_dot, status_color, status_label, status_sub = \
-            "rgba(16,185,129,.07)","#10B981","#10B981","Full Agent Active","LangChain · Pinecone · Ollama"
-    elif RAG_AVAILABLE:
+    if RAG_AVAILABLE:
         status_bg, status_dot, status_color, status_label, status_sub = \
             "rgba(0,212,255,.06)","#00D4FF","#00D4FF","RAG Pipeline Active","Pinecone · llama3.2 · nomic-embed"
     elif LLM_AVAILABLE:
