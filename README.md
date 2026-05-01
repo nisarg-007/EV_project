@@ -1,166 +1,60 @@
-# AI-Driven EV Infrastructure & Policy Intelligence System
+# ⚡ EV Intelligence Assistant: Washington State RAG
 
-| **Project Title** | EV Infrastructure & Policy Intelligence System |
-| :--- | :--- |
-| **Prepared For** | [Stakeholder Name / Organization] |
-| **Prepared By** | Somil Doshi |
-| **Date** | February 14, 2026 |
-| **Version** | 1.0 |
+A professional-grade, cloud-ready AI Assistant and Data Dashboard for exploring Electric Vehicle adoption and policy in Washington State.
 
----
+![EV Dashboard](https://img.shields.io/badge/Streamlit-Cloud-FF4B4B?style=for-the-badge&logo=Streamlit)
+![Groq](https://img.shields.io/badge/LLM-Groq_Llama_3.1-orange?style=for-the-badge)
+![Pinecone](https://img.shields.io/badge/Vector_DB-Pinecone-blue?style=for-the-badge)
 
-## 🚀 Project Status
+## 🌟 Key Features
+- **🤖 Hybrid RAG Chat**: Conversational AI powered by Groq (Cloud) and Ollama (Local) with context-aware retrieval from official WA policy documents.
+- **📊 Dynamic Dashboard**: Interactive visualizations of EV registration trends, county breakdowns, and market share.
+- **🔋 Policy Engine**: Instant answers on federal tax credits (IRA), state rebates, and ZEV mandates.
+- **☁️ Zero-Cost Cloud Deployment**: Fully optimized for Streamlit Community Cloud using Sentence-Transformers for free embeddings.
 
-### ✅ Completed
-- **Project Planning**: Detailed architecture and roadmap defined.
-- **Data Acquisition**: Secured Washington State DOL EV registration data (276,000+ records).
-- **Infrastructure Setup**: Git repository initialized, `somil` branch created.
+## 🛠️ Tech Stack
+- **Framework**: Streamlit
+- **LLM Providers**: Groq (Cloud), Ollama (Local)
+- **Vector Database**: Pinecone
+- **Embeddings**: HuggingFace (all-MiniLM-L6-v2)
+- **Data Processing**: Pandas, DuckDB
 
-### 🔄 Ongoing
-- **Environment Setup**: Configuring local LLM (Ollama) and Python dependencies.
-- **Data Exploration**: Initial analysis of CSV data for quality and schema validation.
-- **Prototype Development**: Setting up the basic Streamlit application structure.
+## 🚀 Getting Started
 
----
+### 1. Prerequisites
+- Python 3.10+
+- [Ollama](https://ollama.com/) (Optional, for local execution)
 
-## 1. Executive Summary
-
-### 1.1 Overview
-This project proposes the development of an **AI-driven decision support system** designed to optimize Electric Vehicle (EV) infrastructure planning and policy analysis. By synthesizing **270,000+ EV registration records** with complex legal policy documents, the system aims to provide actionable intelligence to policymakers, utility companies, and urban planners.
-
-### 1.2 Key Innovation
-The core innovation is the integration of **Traditional Data Engineering** (ETL, Clustering) with **Generative AI** (Retrieval-Augmented Generation, Agentic Workflows). This hybrid approach bridges the gap between quantitative metrics (e.g., *adoption rates*) and qualitative constraints (e.g., *incentive eligibility*).
-
-### 1.3 Operational Efficiency
-To ensure data privacy and cost-efficiency, the system utilizes **Local Large Language Models (LLMs)** via Ollama. This architecture guarantees zero inference costs while maintaining strict data sovereignty, making it suitable for sensitive government or enterprise deployments.
-
----
-
-## 2. Business Problem & Objectives
-
-### 2.1 The Challenge
-The rapid but uneven growth of EV adoption has created three critical issues:
-1.  **Inefficient Infrastructure:** Capital allocation for charging stations often mismatches actual demand hotspots.
-2.  **Grid Strain:** Utility providers lack granular visibility into localized load increases from new EV registrations.
-3.  **Policy Complexity:** Stakeholders struggle to navigate the intricate web of federal and state incentives (e.g., CAFV eligibility), leading to underutilization of available funds.
-
-### 2.2 Strategic Objectives
-The proposed platform addresses these challenges by answering three strategic questions:
-*   **Descriptive:** *Where is adoption growing fastest?* (Geospatial Analytics)
-*   **Diagnostic:** *Why are specific regions lagging?* (Demographic Clustering)
-*   **Prescriptive:** *What policy levers are available to accelerate growth?* (AI-Driven Recommendations)
-
----
-
-## 3. Technical Architecture & Engineering Design
-
-The system is architected as a modular, three-tier application: the **Data Lakehouse**, the **Intelligence Engine**, and the **Presentation Layer**.
-
-### 3.1 Data Layer (The Foundation)
-*   **Structured Data:**
-    *   Ingestion of Washington State Department of Licensing (DOL) data (270k+ rows).
-    *   Geospatial indexing using PostGIS or pre-computed GeoJSON.
-*   **Unstructured Data:**
-    *   PDF parsing of legislative bills, utility commission reports, and grant documentation.
-*   **Vector Storage:**
-    *   Implementation of **Pinecone (Serverless)** for semantic indexing of text chunks (768-dimensional embeddings).
-
-### 3.2 Intelligence Engine (LangGraph & Ollama)
-This is the system's "Brain," utilizing a stateful graph architecture to orchestrate workflows.
-*   **Orchestration:** **LangGraph** manages the state of conversation, routing user queries to specialized agents.
-*   **Local LLM Inference:** **Ollama (Llama 3 / Mistral)** handles reasonining and natural language generation on local hardware.
-*   **Agentic Roles:**
-    1.  **Router Agent:** Classifies intent (e.g., "Is this a data query or a policy question?").
-    2.  **Data Analyst Agent:** Generates Python/Pandas code to query the structured dataset.
-    3.  **Policy Expert Agent (RAG):** Retrieves and synthesizes legal text from the Vector DB.
-
-### 3.3 Presentation Layer (UI)
-*   **Framework:** **Streamlit** for rapid development of data-centric web applications.
-*   **Visualization:** Interactive heatmaps (Folium) and dynamic charts (Plotly).
-*   **Interaction:** A unified chat interface for hybrid queries (e.g., *"Show me the map of King County and explain the tax credits available there"*).
-
----
-
-## 4. End-to-End Data Engineering Lifecycle
-
-This project demonstrates a complete, industry-standard Data Engineering pipeline.
-
-### 4.1 Architecture Diagram
-
-```ascii
-[ RAW SOURCES ]       [ ETL & PROCESSING ]          [ SERVING LAYER ]
-
-   (CSV)               +------------------+         +-----------------+
-EV Registrations  ---> |   Pandas ETL     |  ---->  |  Streamlit App  |
-                       | (Clean, Feature) |         |  (Dash + Chat)  |
-   (PDF)               +------------------+         +--------+--------+
-Policy Docs       ---> |    LangChain     |                  ^
-                       | (Chunk & Embed)  |                  |
-                       +--------+---------+                  |
-                                |                            |
-                                v                            |
-                       +--------+---------+         +--------+--------+
-                       |    Pinecone      | <-----> |   LangGraph     |
-                       |   (Vector DB)    |         |  Orchestrator   |
-                       +------------------+         +-----------------+
+### 2. Installation
+```bash
+git clone https://github.com/somildoshi12/EV_project.git
+cd EV_project
+pip install -r requirements.txt
 ```
 
-### 4.2 Core Engineering Concepts Applied
-1.  **ETL (Extract, Transform, Load):**
-    *   **Extract:** Automated ingestion of government CSVs and PDF reports.
-    *   **Transform:**
-        *   *Imputation:* Handling missing vehicle metadata (MSRP/Range).
-        *   *Normalization:* Standardizing geographic entities for SQL compatibility.
-        *   *Feature Engineering:* Calculating `Adoption_Velocity` metrics per zip code.
-    *   **Load:** Persisting optimized data structures for low-latency querying.
+### 3. Environment Setup
+Create a `.env` file in the root directory:
+```env
+PINECONE_API_KEY=your_pinecone_key
+GROQ_API_KEY=your_groq_key
+```
 
-2.  **Vector Search & RAG:**
-    *   **Semantic Indexing:** Moving beyond keyword search to semantic understanding.
-    *   **Context Window Management:** Optimizing chunk sizes for local model performance.
+### 4. Run Locally
+```bash
+streamlit run app.py
+```
 
-3.  **Stateful Orchestration:**
-    *   Replacing brittle "if/else" logic with **Graph-based workflows** that can handle errors, loops, and conditional branching.
+## 📁 Project Structure
+- `app.py`: Main Landing Page
+- `pages/`: 
+  - `1_Dashboard.py`: Analytics & Visualizations
+  - `2_Chat.py`: AI Assistant Interface
+- `scripts/`: Data processing and RAG pipeline logic
+- `data/`: 
+  - `raw/`: Source PDF documents
+  - `processed/`: Cleaned datasets for analytics
+  - `policy/`: Markdown-converted policy text
 
----
-
-## 5. Implementation Roadmap
-
-### Phase 1: Data Engineering & Foundation
-*   **Goal:** Establish clean data pipelines and local AI environment.
-*   **Deliverables:**
-    *   Cleaned Parquet/CSV dataset.
-    *   Populated Pinecone Vector Index.
-    *   Configured Ollama instance.
-
-### Phase 2: Analytics & Modeling
-*   **Goal:** Develop the deterministic tools for the AI agents.
-*   **Deliverables:**
-    *   K-Means Clustering model (identifying adoption hotspots).
-    *   Python library of statistical functions.
-
-### Phase 3: Intelligence Engine Development
-*   **Goal:** Build and test the LangGraph workflow.
-*   **Deliverables:**
-    *   `Router` node for intent classification.
-    *   `DataAnalyst` and `PolicyExpert` chains.
-    *   Validated "Chat with Data" pipeline.
-
-### Phase 4: Application Integration
-*   **Goal:** Assemble the user interface.
-*   **Deliverables:**
-    *   Streamlit Dashboard with side-by-side Map and Chat.
-    *   Integrated error handling and latency optimization.
-
----
-
-## 6. Resources
-
-| Component | Technology | Cost Tier | Notes |
-| :--- | :--- | :--- | :--- |
-| **Compute / Inference** | **Ollama** (Llama 3) | **$0.00** | Runs on local hardware (Mac M-Series recommeded). |
-| **Orchestration** | **LangGraph** | **$0.00** | Open Source MIT License. |
-| **Vector Database** | **Pinecone** | **$0.00** | Free Starter Tier (1 Index, 100k vectors). |
-| **Frontend Storage** | **GitHub** | **$0.00** | Code repository and version control. |
-| **Frontend Framework** | **Streamlit** | **$0.00** | Open Source framework. |
-
----
+## 👥 Contributors
+- **Somil Doshi**
+- **Md**
