@@ -29,3 +29,4 @@ statsmodels
 streamlit-lottie
 # Phase 4 — observability
 prometheus-client
+pytest

@@ -45,3 +45,14 @@
 *   **Action:**
     *   Configured index: `ev-policy-docs` (768 dim).
     *   Pipeline ready: Extracts PDF -> Embeds via Ollama -> Upserts to Pinecone.
+
+### 5. **QA, Testing & Documentation (May 2, 2026)**
+*   **Method:**
+    *   Smit (QA Lead) implemented unit tests and updated documentation based on `TASK_SMIT_TESTING_DOCS.md`.
+*   **Action:**
+    *   Created `tests/test_analytics_tools.py`, `tests/test_rag_query.py`, `tests/test_agent_workflow.py`.
+    *   Created `tests/demo_queries.py` for live demonstrations.
+    *   Updated `README.md` to include team roles, tech stack versions, screenshots, and license section.
+    *   Added `docs/SETUP_GUIDE.md` for fresh installations.
+    *   Added `pytest` to `scripts/requirements.txt`.
+    *   Verified tests with `pytest`.

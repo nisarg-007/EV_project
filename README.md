@@ -1,7 +1,17 @@
 # EV Intelligence Platform
 
 **AI-Driven EV Infrastructure & Policy Intelligence System**
-Team 19 · Somil Doshi · Washington State EV Data
+
+---
+
+## 👥 Team Members
+| Name | Role | Responsibilities |
+| :--- | :--- | :--- |
+| **Somil Doshi** | Lead Dashboard Developer | Streamlit UI, visual analytics, project scaffolding |
+| **Nisarg** | Data Engineer & Analyst | Data processing (DuckDB, Parquet), EDA, Analytics tools |
+| **Parva** | AI & RAG Engineer | Policy docs scraping, Pinecone setup, local Ollama embeddings |
+| **MD** | Agentic Workflow Engineer | LangGraph routing, tool calling, chatbot logic |
+| **Smit** | QA Lead & Tech Writer | Unit testing, documentation, demo scripting |
 
 ---
 
@@ -20,6 +30,28 @@ A full-stack analytics platform that combines 276,000+ Washington State EV regis
 - RAG source reveal drawer in chat
 - Prometheus observability metrics on port 8502
 - Full Docker Compose stack with health-checked startup
+
+---
+
+## 📷 Screenshots
+
+![EV Dashboard Chat Interface](docs/img_ai_dashboard.png)
+
+---
+
+## 🛠 Tech Stack
+
+| Technology | Version | Purpose |
+| :--- | :--- | :--- |
+| **Python** | `3.10+` | Core backend programming language |
+| **Streamlit** | `1.32.0+` | Frontend web framework |
+| **DuckDB** | `0.10.0+` | Fast analytical database |
+| **Pandas** | `2.2.0+` | Data manipulation |
+| **LangGraph** | `0.0.26+` | Agentic workflow orchestration |
+| **Ollama** | `latest` | Local LLM (`llama3.2`) and embeddings (`nomic-embed-text`) |
+| **Pinecone** | `3.0.0+` | Serverless vector database |
+| **Docker** | `24.0+` | Containerization |
+| **Pytest** | `latest` | Testing framework |
 
 ---
 
@@ -102,5 +134,7 @@ EV_Project/
 
 ---
 
-## Setup Details
-For more detailed information, role of Docker, and troubleshooting, see [SETUP_GUIDE.md](SETUP_GUIDE.md).
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
