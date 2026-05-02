@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+from src.components.sidebar import render_sidebar
 
 PARQUET_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'Electric_Vehicle_Population_Data.parquet'))
 
@@ -32,7 +33,6 @@ header[data-testid="stHeader"]{display:none!important;}
 [data-testid="stSidebar"]{background:linear-gradient(180deg,#0B0E18 0%,#0F1623 100%)!important;border-right:1px solid var(--border)!important;}
 [data-testid="stSidebar"]>div:first-child{padding:0!important;}
 [data-testid="stSidebarContent"]{padding-top:0!important;}
-section[data-testid="stSidebar"]>div>div>div>div{padding-top:0!important;gap:0!important;}
 
 /* Metrics */
 [data-testid="stMetric"]{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:20px!important;padding:1.2rem 1.5rem!important;transition:all .25s cubic-bezier(.4,0,.2,1)!important;position:relative;overflow:hidden;}
@@ -54,12 +54,13 @@ section[data-testid="stSidebar"]>div>div>div>div{padding-top:0!important;gap:0!i
 .stSlider [data-testid="stTickBar"]{color:var(--t3)!important;}
 
 /* Sidebar buttons */
+div[data-testid="stSidebar"] .stButton{margin-bottom:6px!important;}
 div[data-testid="stSidebar"] .stButton>button{
     background:transparent!important;color:var(--t2)!important;
     border:1px solid transparent!important;border-radius:10px!important;
     padding:.6rem 1rem!important;font-weight:500!important;font-size:.88rem!important;
     text-align:left!important;width:100%!important;box-shadow:none!important;
-    letter-spacing:0!important;margin-bottom:.2rem!important;transition:all .2s!important;
+    letter-spacing:0!important;transition:all .2s!important;
 }
 div[data-testid="stSidebar"] .stButton>button:hover{
     background:rgba(0,212,255,.07)!important;border-color:rgba(0,212,255,.2)!important;
@@ -130,25 +131,7 @@ def section(label):
 #  SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("""
-    <div style="padding:1.25rem 1.25rem 1rem;border-bottom:1px solid #1E293B;margin-top:0;">
-        <div style="display:flex;align-items:center;gap:.7rem;">
-            <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
-                        background:linear-gradient(135deg,#7C3AED,#00D4FF);
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:1.1rem;box-shadow:0 4px 12px rgba(124,58,237,.4);">⚡</div>
-            <div>
-                <div style="color:#F1F5F9;font-weight:700;font-size:.9rem;line-height:1.2;">EV Intelligence</div>
-                <div style="color:#475569;font-size:.6rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;">Dashboard</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div style="padding:.8rem 1.2rem .3rem;"><div style="color:#64748B;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;">Pages</div></div>', unsafe_allow_html=True)
-    if st.button("🏠  Home",      key="n0", use_container_width=True): st.switch_page("app.py")
-    if st.button("📊  Dashboard", key="n1", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
-    if st.button("🤖  AI Chat",   key="n2", use_container_width=True): st.switch_page("pages/2_Chat.py")
+    render_sidebar()
 
     st.markdown('<div style="height:1px;background:#1E293B;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
     st.markdown('<div style="padding:0 1.2rem;"><div style="color:#64748B;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Global Filters</div></div>', unsafe_allow_html=True)
@@ -222,14 +205,18 @@ col_map, col_county = st.columns([6,4], gap="medium")
 
 with col_map:
     section("EV Registration Hotspots")
-    # Per-chart controls
-    mc1, mc2, mc3 = st.columns([2,2,3])
+    mc1, mc2, mc3, mc4, mc5 = st.columns([2, 1, 2, 2, 2])
     with mc1:
         map_color_by = st.selectbox("Color by", ["EV Type","Make","Model Year"], key="map_col", label_visibility="collapsed")
     with mc2:
         map_opacity = st.slider("Opacity", 0.2, 1.0, 0.65, 0.05, key="map_op", label_visibility="collapsed")
     with mc3:
         map_sample = st.slider("Max points (k)", 5, 50, 25, 5, key="map_samp", label_visibility="collapsed")
+    with mc4:
+        map_zoom = st.slider("Zoom level", 4, 12, 6, key="map_zoom", label_visibility="collapsed",
+                              help="4 = whole state, 10 = city level")
+    with mc5:
+        pt_size = st.slider("Point size", 2, 12, 5, key="pt_sz", label_visibility="collapsed")
 
     color_col_map = {
         "EV Type":    "Electric Vehicle Type",
@@ -248,25 +235,29 @@ with col_map:
         if not parsed.empty:
             parsed.columns=['lon','lat']; parsed=parsed.astype(float)
             df_coords = df_coords.join(parsed)
-            samp = df_coords.dropna(subset=['lat','lon']).sample(n=min(map_sample*1000,len(df_coords.dropna(subset=['lat','lon']))),random_state=42)
+            valid = df_coords.dropna(subset=['lat','lon'])
+            samp = valid.sample(n=min(map_sample*1000, len(valid)), random_state=42)
+            # Auto-center on selection
+            center_lat = samp['lat'].mean() if sel_county else 47.5
+            center_lon = samp['lon'].mean() if sel_county else -120.5
             is_dark = "dark" in map_style or "matter" in map_style
             fig_map = px.scatter_mapbox(
                 samp, lat='lat', lon='lon',
                 color=color_col,
                 color_discrete_sequence=['#00D4FF','#7C3AED','#F72585','#10B981','#F59E0B'],
                 color_continuous_scale='Viridis' if color_col=="Model Year" else None,
-                zoom=6, center={"lat":47.5,"lon":-120.5},
+                zoom=map_zoom, center={"lat": center_lat, "lon": center_lon},
                 mapbox_style=map_style,
                 hover_data=['County','Make','Model'],
-                opacity=map_opacity, size_max=6,
+                opacity=map_opacity, size_max=pt_size,
             )
             fig_map.update_layout(
                 paper_bgcolor="#0A0D14" if is_dark else "#F8FAFC",
                 font_color="#CBD5E1" if is_dark else "#1E293B",
-                margin=dict(l=0,r=0,t=10,b=0), height=490,
+                margin=dict(l=0,r=0,t=10,b=0), height=500,
                 legend=dict(bgcolor="rgba(10,13,20,.88)",bordercolor="#1E293B",borderwidth=1,font=dict(color="#CBD5E1",size=10)),
             )
-            st.plotly_chart(fig_map, use_container_width=True)
+            st.plotly_chart(fig_map, use_container_width=True, config={"scrollZoom": True})
         else:
             st.info("No location data available for current filter.")
 

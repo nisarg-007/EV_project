@@ -1,13 +1,30 @@
 import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from src.components.sidebar import render_sidebar
 
+import re
 import streamlit as st
+import streamlit.components.v1 as components
 import time
+import contextlib
 
 # ── Backend setup ──────────────────────────────────────────────────────────────
 AGENT_AVAILABLE = False
 RAG_AVAILABLE   = False
 LLM_AVAILABLE   = False
+CHART_AVAILABLE = False
+
+# Last RAG sources are stored here so the UI can show the source drawer
+_last_sources: list[dict] = []
+# Last chart HTML so the UI can render it inline
+_last_chart_html: str = ""
+
+# Try to load chart tool
+try:
+    from src.tools.chart_tool import generate_chart_tool
+    CHART_AVAILABLE = True
+except Exception:
+    pass
 
 try:
     from scripts.agent_workflow import run_agent
@@ -18,7 +35,7 @@ except ImportError:
 if not AGENT_AVAILABLE:
     try:
         from dotenv import load_dotenv
-        load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'pinecone.env'))
+        load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
         from langchain_ollama import OllamaEmbeddings, ChatOllama
         from langchain_pinecone import PineconeVectorStore
         from langchain_core.prompts import ChatPromptTemplate
@@ -53,12 +70,84 @@ def _format_docs(docs):
         for d in docs
     )
 
+_CHART_KEYWORDS = re.compile(
+    r'\b(chart|plot|graph|show|visuali[sz]e|pie|bar|line|scatter|map|choropleth|draw)\b',
+    re.IGNORECASE
+)
+
+def _parse_chart_intent(query: str) -> dict | None:
+    """
+    Parse natural language chart requests into chart_tool arguments.
+    Returns None if the query doesn't look like a chart request.
+    """
+    if not _CHART_KEYWORDS.search(query):
+        return None
+
+    q = query.lower()
+
+    # Detect chart type
+    if "pie" in q:
+        chart_type = "pie"
+    elif "line" in q or "trend" in q or "over time" in q or "growth" in q:
+        chart_type = "line"
+    elif "scatter" in q:
+        chart_type = "scatter"
+    elif "map" in q or "choropleth" in q or "county" in q and "map" in q:
+        chart_type = "choropleth_wa"
+    else:
+        chart_type = "bar"
+
+    # Build a pandas query string from county / make hints
+    filters = []
+    county_match = re.search(r'\b(king|pierce|snohomish|clark|spokane|thurston|kitsap|whatcom|benton|yakima)\b', q)
+    if county_match:
+        filters.append(f"County == '{county_match.group(0).title()}'")
+
+    make_map = {"tesla": "TESLA", "chevrolet": "CHEVROLET", "chevy": "CHEVROLET",
+                "nissan": "NISSAN", "ford": "FORD", "bmw": "BMW", "kia": "KIA",
+                "hyundai": "HYUNDAI", "volkswagen": "VOLKSWAGEN", "audi": "AUDI"}
+    for word, make_val in make_map.items():
+        if word in q:
+            filters.append(f"Make == '{make_val}'")
+            break
+
+    pandas_query = " and ".join(filters)
+
+    return {
+        "chart_type": chart_type,
+        "query": pandas_query,
+        "title": query[:80],
+    }
+
+
 def get_response_stream(query: str):
     """
     Generator that yields text chunks so we can stream into st.write_stream.
-    Priority: agent_workflow → RAG (Pinecone + Ollama) → Ollama only → mock
+    Priority: chart intent → agent_workflow → RAG (Pinecone + Ollama) → Ollama only → mock
+    Side-effect: populates _last_sources and _last_chart_html.
     """
-    # 1. Full agent (MD's)
+    global _last_sources, _last_chart_html
+    _last_sources = []
+    _last_chart_html = ""
+
+    # 0. Chart intent — intercept before LLM if it looks like a visualisation request
+    if CHART_AVAILABLE:
+        intent = _parse_chart_intent(query)
+        if intent:
+            result = generate_chart_tool.invoke(intent)
+            if result.get("html") and not result.get("error"):
+                _last_chart_html = result["html"]
+                row_count = result.get("row_count", 0)
+                yield f"Here's your **{intent['chart_type']}** chart"
+                if intent.get("query"):
+                    yield f" (filtered: `{intent['query']}`)"
+                yield f" — **{row_count:,}** records plotted."
+                return
+            elif result.get("error"):
+                yield f"I tried to generate a chart but ran into an issue: {result['error']}\n\nHere's a text answer instead:\n\n"
+                # Fall through to normal LLM path
+
+    # 1. Full agent
     if AGENT_AVAILABLE:
         result = run_agent(query)
         for ch in result:
@@ -70,6 +159,17 @@ def get_response_stream(query: str):
         try:
             retriever = _vectorstore.as_retriever(search_kwargs={"k": 4})
             docs = retriever.invoke(query)
+
+            # Capture sources for the drawer
+            _last_sources = [
+                {
+                    "source": d.metadata.get("source", "policy-doc"),
+                    "preview": d.page_content[:120],
+                    "score": d.metadata.get("score", None),
+                }
+                for d in docs
+            ]
+
             context = _format_docs(docs) if docs else ""
 
             if context:
@@ -90,7 +190,6 @@ def get_response_stream(query: str):
                     | StrOutputParser()
                 )
             else:
-                # No relevant docs — pure Ollama with EV system prompt
                 prompt = ChatPromptTemplate.from_template(
                     "You are an expert on Washington State electric vehicles. "
                     "You have knowledge of 276,000+ EV registrations: King County leads with 50k+, "
@@ -254,17 +353,16 @@ header[data-testid="stHeader"] {
 }
 [data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
 [data-testid="stSidebarContent"] { padding-top: 0 !important; }
-section[data-testid="stSidebar"] > div > div > div > div {
-    padding-top: 0 !important; gap: 0 !important;
-}
-
 /* Sidebar nav buttons */
+div[data-testid="stSidebar"] .stButton {
+    margin-bottom: 6px !important;
+}
 div[data-testid="stSidebar"] .stButton > button {
     background: transparent !important; color: var(--t4) !important;
     border: 1px solid transparent !important; border-radius: 10px !important;
     padding: 0.55rem 0.9rem !important; font-weight: 500 !important; font-size: 0.875rem !important;
     text-align: left !important; width: 100% !important; box-shadow: none !important;
-    letter-spacing: 0 !important; margin-bottom: 2px !important; transition: all 0.15s !important;
+    letter-spacing: 0 !important; transition: all 0.15s !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
     background: rgba(0,212,255,0.07) !important; border-color: rgba(0,212,255,0.2) !important;
@@ -364,6 +462,13 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 /* ── CHAT INPUT — Apple pill ── */
+.stChatFloatingInputContainer {
+    padding-bottom: 0.5rem !important;
+}
+[data-testid="stBottomBlockContainer"] {
+    padding-bottom: 0rem !important;
+}
+
 [data-testid="stChatInput"] {
     border-radius: 28px !important;
     border: 1.5px solid var(--border2) !important;
@@ -419,27 +524,11 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 #  SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    # Logo — flush to top
-    st.markdown("""
-    <div style="padding:1.25rem 1.25rem 1rem;border-bottom:1px solid #1A2236;">
-        <div style="display:flex;align-items:center;gap:0.7rem;">
-            <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
-                        background:linear-gradient(135deg,#7C3AED,#00D4FF);
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:1.1rem;box-shadow:0 4px 12px rgba(124,58,237,0.4);">⚡</div>
-            <div>
-                <div style="color:#F1F5F9;font-weight:700;font-size:0.9rem;line-height:1.2;">EV Intelligence</div>
-                <div style="color:#475569;font-size:0.6rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;">AI Assistant</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_sidebar()
 
-    # Nav
-    st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Pages</span></div>', unsafe_allow_html=True)
-    if st.button("🏠  Home",      key="n0", use_container_width=True): st.switch_page("app.py")
-    if st.button("📊  Dashboard", key="n1", use_container_width=True): st.switch_page("pages/1_Dashboard.py")
-    if st.button("🤖  AI Chat",   key="n2", use_container_width=True): st.switch_page("pages/2_Chat.py")
+    # Backend status section
+    st.markdown('<div style="padding:0 1.25rem 0.25rem;"><span style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Backend</span></div>', unsafe_allow_html=True)
+
 
     st.markdown('<div style="height:1px;background:#1A2236;margin:0.6rem 1.25rem;"></div>', unsafe_allow_html=True)
 
@@ -542,6 +631,8 @@ if "messages" not in st.session_state:
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+        if msg.get("chart_html"):
+            components.html(msg["chart_html"], height=480, scrolling=False)
 
 # ── Suggestion pills ───────────────────────────────────────────────────────────
 QUESTIONS = [
@@ -552,14 +643,19 @@ QUESTIONS = [
     ("🔋", "BEV vs PHEV breakdown?"),
     ("🏙️", "Top cities for EVs?"),
     ("💡", "Where are charging hotspots?"),
-    ("💰", "WA EV incentives & rebates?"),
+    ("🔮", "Forecast King County EVs to 2030"),
+]
+
+CHART_PILLS = [
+    ("📊", "Bar chart of top EV makes"),
+    ("🥧", "Pie chart of BEV vs PHEV"),
+    ("📉", "Line chart of EV adoption trend"),
+    ("🗺️", "Show choropleth map of EV density by county"),
 ]
 
 st.markdown("""
-<div style="margin:1rem 0 0.5rem;display:flex;align-items:center;gap:0.5rem;">
-    <span style="color:#334155;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">
-        Suggested
-    </span>
+<div style="margin:1rem 0 0.4rem;display:flex;align-items:center;gap:0.5rem;">
+    <span style="color:#334155;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Ask a question</span>
     <div style="flex:1;height:1px;background:#1A2236;"></div>
 </div>
 """, unsafe_allow_html=True)
@@ -575,6 +671,21 @@ for i, (icon, q) in enumerate(QUESTIONS):
             pill_q = q
 st.markdown('</div>', unsafe_allow_html=True)
 
+st.markdown("""
+<div style="margin:.75rem 0 .4rem;display:flex;align-items:center;gap:0.5rem;">
+    <span style="color:#334155;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Generate a chart</span>
+    <div style="flex:1;height:1px;background:#1A2236;"></div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="pill-row">', unsafe_allow_html=True)
+chart_cols = st.columns(4)
+for i, (icon, q) in enumerate(CHART_PILLS):
+    with chart_cols[i]:
+        if st.button(f"{icon} {q}", key=f"cpill_{i}", use_container_width=True):
+            pill_q = q
+st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
 # ── Chat input ─────────────────────────────────────────────────────────────────
@@ -587,14 +698,70 @@ if prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
+
     with st.chat_message("assistant"):
         thinking_placeholder = st.empty()
         thinking_placeholder.markdown(
-            '<div class="thinking-dots"><span></span><span></span><span></span></div>',
-            unsafe_allow_html=True
+            """
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.25rem 0;">
+                <div class="thinking-dots"><span></span><span></span><span></span></div>
+                <span style="color:#475569;font-size:.8rem;font-style:italic;">Agent thinking…</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
         full_response = st.write_stream(get_response_stream(prompt))
         thinking_placeholder.empty()
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+
+        # Inline chart — render immediately after the text response
+        chart_html = _last_chart_html
+        if chart_html:
+            components.html(chart_html, height=480, scrolling=False)
+
+        # RAG source reveal drawer
+        sources = list(_last_sources)
+        if sources:
+            with st.expander(f"Sources used ({len(sources)})", expanded=False):
+                for src in sources:
+                    score = src.get("score")
+                    if score is not None:
+                        if score > 0.8:
+                            badge_color, badge_bg = "#10B981", "rgba(16,185,129,.12)"
+                        elif score > 0.6:
+                            badge_color, badge_bg = "#F59E0B", "rgba(245,158,11,.12)"
+                        else:
+                            badge_color, badge_bg = "#EF4444", "rgba(239,68,68,.10)"
+                        score_badge = (
+                            f'<span style="background:{badge_bg};color:{badge_color};'
+                            f'border:1px solid {badge_color}40;border-radius:6px;'
+                            f'padding:.1rem .4rem;font-size:.7rem;font-weight:600;">'
+                            f'{score:.2f}</span>'
+                        )
+                    else:
+                        score_badge = ""
+
+                    st.markdown(
+                        f"""
+                        <div style="background:#111827;border:1px solid #1A2236;border-radius:10px;
+                                    padding:.75rem 1rem;margin-bottom:.5rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
+                                <span style="color:#00D4FF;font-size:.78rem;font-weight:600;">
+                                    📄 {src['source']}
+                                </span>
+                                {score_badge}
+                            </div>
+                            <div style="color:#64748B;font-size:.78rem;line-height:1.5;">
+                                {src['preview']}…
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+    # Store chart HTML alongside the message so it re-renders on rerun
+    msg_entry = {"role": "assistant", "content": full_response}
+    if _last_chart_html:
+        msg_entry["chart_html"] = _last_chart_html
+    st.session_state.messages.append(msg_entry)
     if pill_q:
         st.rerun()

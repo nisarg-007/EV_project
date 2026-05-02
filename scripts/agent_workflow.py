@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 
 try:
     from typing import TypedDict
@@ -224,7 +225,99 @@ def build_graph():
     
     return workflow.compile()
 
+_GREETING_PATTERNS = re.compile(
+    r'^\s*(hi|hello|hey|howdy|sup|what\'s up|greetings|good\s+(morning|afternoon|evening)|'
+    r'how are you|who are you|what (can|do) you do|help me|what is this|capabilities)\b',
+    re.IGNORECASE
+)
+
+_FORECAST_PATTERNS = re.compile(
+    r'\b(forecast|predict|projection|future|2025|2026|2027|2028|2029|2030|next year|'
+    r'next \d+ years?|growth (in|for)|how many.*will|expected|estimate)\b',
+    re.IGNORECASE
+)
+
+
+def _greeting_response() -> str:
+    return (
+        "Hi! I'm your **EV Intelligence Assistant**.\n\n"
+        "I can help you explore **276,000+ EV registrations** across Washington State. Ask me about:\n"
+        "- 🗺️ County & city EV hotspots\n"
+        "- 🚗 Top makes & models (Tesla, Chevrolet, Nissan…)\n"
+        "- 📈 Adoption trends & growth history\n"
+        "- 🔮 Forecasts — *e.g. 'Forecast King County EVs to 2030'*\n"
+        "- 🔋 BEV vs PHEV breakdown\n"
+        "- ⚡ Charging infrastructure hotspots\n"
+        "- 💰 WA state incentives & CAFV eligibility\n\n"
+        "What would you like to know?"
+    )
+
+
+def _forecast_response(question: str) -> str:
+    import re as _re
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    parquet_path = os.path.join(BASE_DIR, 'data', 'processed', 'Electric_Vehicle_Population_Data.parquet')
+
+    try:
+        sys.path.insert(0, BASE_DIR)
+        from src.forecasting.forecaster import EVForecaster, load_registration_timeseries
+        import pandas as pd
+
+        ts_all = load_registration_timeseries(parquet_path)
+
+        # Extract county name from question
+        county_match = _re.search(
+            r'\b(king|pierce|snohomish|clark|spokane|thurston|kitsap|whatcom|benton|yakima)\b',
+            question, _re.IGNORECASE
+        )
+        counties = [county_match.group(0).title()] if county_match else ["King", "Pierce", "Snohomish"]
+
+        # Extract horizon
+        year_match = _re.search(r'\b(202[5-9]|2030)\b', question)
+        horizon_match = _re.search(r'\b(\d+)\s+years?\b', question, _re.IGNORECASE)
+        if year_match:
+            periods = int(year_match.group(0)) - 2023
+        elif horizon_match:
+            periods = int(horizon_match.group(1))
+        else:
+            periods = 6
+
+        lines = [f"**EV Forecast ({2023 + periods} horizon)**\n"]
+        for county in counties:
+            county_ts = ts_all[ts_all["county"] == county].sort_values("date")
+            if len(county_ts) < 2:
+                lines.append(f"- **{county}**: insufficient data for forecasting")
+                continue
+            fc = EVForecaster().fit(county_ts, county)
+            pred = fc.predict(periods=periods)
+            last_actual = int(county_ts["registrations"].iloc[-1])
+            last_forecast = max(0, int(pred["yhat"].iloc[-1]))
+            growth = (last_forecast - last_actual) / max(last_actual, 1) * 100
+            lines.append(
+                f"- **{county} County**: {last_actual:,} EVs (2023) → **{last_forecast:,} EVs ({2023 + periods})** "
+                f"(+{growth:.0f}% growth, model: {fc._model_name.upper()})"
+            )
+
+        lines.append(f"\n_Forecasts use {'ARIMA' if periods < 24 else 'Prophet'} models fit on annual registration counts. "
+                     f"Visit the 📈 Forecasting page for interactive charts._")
+        return "\n".join(lines)
+
+    except Exception as e:
+        return (
+            f"I wasn't able to run the forecast model ({e}). "
+            f"Please visit the **📈 Forecasting** page for interactive county-level predictions."
+        )
+
+
 def run_agent(question: str) -> str:
+    # Handle greetings and general capability questions without hitting the data pipeline
+    if _GREETING_PATTERNS.search(question):
+        return _greeting_response()
+
+    # Handle forecast/prediction questions with the forecaster
+    if _FORECAST_PATTERNS.search(question):
+        return _forecast_response(question)
+
     try:
         graph = build_graph()
         result = graph.invoke({"question": question})

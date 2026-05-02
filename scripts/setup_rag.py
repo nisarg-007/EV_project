@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 SCRIPT_DIR_EARLY = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(SCRIPT_DIR_EARLY, '..', 'pinecone.env'))
+load_dotenv(os.path.join(SCRIPT_DIR_EARLY, '..', '.env'))
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 POLICY_DIR = os.path.join(SCRIPT_DIR, '..', 'data', 'policy')

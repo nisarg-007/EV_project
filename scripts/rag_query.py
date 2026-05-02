@@ -24,7 +24,7 @@ from langchain_pinecone import PineconeVectorStore
 
 # ── Environment ───────────────────────────────────────────────────────────────
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(_SCRIPT_DIR, '..', 'pinecone.env'))
+load_dotenv(os.path.join(_SCRIPT_DIR, '..', '.env'))
 
 INDEX_NAME      = "ev-policy-docs"
 EMBEDDING_MODEL = "nomic-embed-text"

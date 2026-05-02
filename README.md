@@ -1,166 +1,106 @@
-# AI-Driven EV Infrastructure & Policy Intelligence System
+# EV Intelligence Platform
 
-| **Project Title** | EV Infrastructure & Policy Intelligence System |
-| :--- | :--- |
-| **Prepared For** | [Stakeholder Name / Organization] |
-| **Prepared By** | Somil Doshi |
-| **Date** | February 14, 2026 |
-| **Version** | 1.0 |
+**AI-Driven EV Infrastructure & Policy Intelligence System**
+Team 19 · Somil Doshi · Washington State EV Data
 
 ---
 
-## 🚀 Project Status
+## What this is
 
-### ✅ Completed
-- **Project Planning**: Detailed architecture and roadmap defined.
-- **Data Acquisition**: Secured Washington State DOL EV registration data (276,000+ records).
-- **Infrastructure Setup**: Git repository initialized, `somil` branch created.
+A full-stack analytics platform that combines 276,000+ Washington State EV registration records with a local LLM (Ollama), a vector RAG pipeline (Pinecone), and a LangGraph agentic workflow — all served through a Streamlit dashboard.
 
-### 🔄 Ongoing
-- **Environment Setup**: Configuring local LLM (Ollama) and Python dependencies.
-- **Data Exploration**: Initial analysis of CSV data for quality and schema validation.
-- **Prototype Development**: Setting up the basic Streamlit application structure.
+**Three pages:**
+- **Dashboard** — interactive Plotly/Folium visualizations, glassmorphism KPI cards, adoption trend charts
+- **AI Chat** — natural language queries answered by a LangGraph agent with RAG source citations
+- **Charger Optimizer** — K-Means clustering to suggest optimal EV charging station locations, with What-If radius analysis and GeoJSON export
 
----
-
-## 1. Executive Summary
-
-### 1.1 Overview
-This project proposes the development of an **AI-driven decision support system** designed to optimize Electric Vehicle (EV) infrastructure planning and policy analysis. By synthesizing **270,000+ EV registration records** with complex legal policy documents, the system aims to provide actionable intelligence to policymakers, utility companies, and urban planners.
-
-### 1.2 Key Innovation
-The core innovation is the integration of **Traditional Data Engineering** (ETL, Clustering) with **Generative AI** (Retrieval-Augmented Generation, Agentic Workflows). This hybrid approach bridges the gap between quantitative metrics (e.g., *adoption rates*) and qualitative constraints (e.g., *incentive eligibility*).
-
-### 1.3 Operational Efficiency
-To ensure data privacy and cost-efficiency, the system utilizes **Local Large Language Models (LLMs)** via Ollama. This architecture guarantees zero inference costs while maintaining strict data sovereignty, making it suitable for sensitive government or enterprise deployments.
+**Features:**
+- County-level EV growth forecasting (Prophet + ARIMA fallback)
+- LangGraph chart generation tool (5 chart types from natural language)
+- RAG source reveal drawer in chat
+- Prometheus observability metrics on port 8502
+- Full Docker Compose stack with health-checked startup
 
 ---
 
-## 2. Business Problem & Objectives
+## Quick Start (Docker)
 
-### 2.1 The Challenge
-The rapid but uneven growth of EV adoption has created three critical issues:
-1.  **Inefficient Infrastructure:** Capital allocation for charging stations often mismatches actual demand hotspots.
-2.  **Grid Strain:** Utility providers lack granular visibility into localized load increases from new EV registrations.
-3.  **Policy Complexity:** Stakeholders struggle to navigate the intricate web of federal and state incentives (e.g., CAFV eligibility), leading to underutilization of available funds.
+**Requirements:** Docker Desktop, 8 GB RAM free, ~6 GB disk (model weights)
 
-### 2.2 Strategic Objectives
-The proposed platform addresses these challenges by answering three strategic questions:
-*   **Descriptive:** *Where is adoption growing fastest?* (Geospatial Analytics)
-*   **Diagnostic:** *Why are specific regions lagging?* (Demographic Clustering)
-*   **Prescriptive:** *What policy levers are available to accelerate growth?* (AI-Driven Recommendations)
+```bash
+# 1. Clone and enter the project
+git clone <repo-url>
+cd EV_Project
 
----
+# 2. Configure environment
+cp .env.example .env
+# edit .env → set PINECONE_API_KEY
 
-## 3. Technical Architecture & Engineering Design
+# 3. Start everything
+docker compose up -d --build
 
-The system is architected as a modular, three-tier application: the **Data Lakehouse**, the **Intelligence Engine**, and the **Presentation Layer**.
+# 4. Pull the LLM models (first time only)
+docker compose exec ollama ollama pull llama3.2
+docker compose exec ollama ollama pull nomic-embed-text
 
-### 3.1 Data Layer (The Foundation)
-*   **Structured Data:**
-    *   Ingestion of Washington State Department of Licensing (DOL) data (270k+ rows).
-    *   Geospatial indexing using PostGIS or pre-computed GeoJSON.
-*   **Unstructured Data:**
-    *   PDF parsing of legislative bills, utility commission reports, and grant documentation.
-*   **Vector Storage:**
-    *   Implementation of **Pinecone (Serverless)** for semantic indexing of text chunks (768-dimensional embeddings).
+# 5. Initialize vector DB (first time only)
+docker compose exec streamlit python scripts/setup_rag.py
 
-### 3.2 Intelligence Engine (LangGraph & Ollama)
-This is the system's "Brain," utilizing a stateful graph architecture to orchestrate workflows.
-*   **Orchestration:** **LangGraph** manages the state of conversation, routing user queries to specialized agents.
-*   **Local LLM Inference:** **Ollama (Llama 3 / Mistral)** handles reasonining and natural language generation on local hardware.
-*   **Agentic Roles:**
-    1.  **Router Agent:** Classifies intent (e.g., "Is this a data query or a policy question?").
-    2.  **Data Analyst Agent:** Generates Python/Pandas code to query the structured dataset.
-    3.  **Policy Expert Agent (RAG):** Retrieves and synthesizes legal text from the Vector DB.
-
-### 3.3 Presentation Layer (UI)
-*   **Framework:** **Streamlit** for rapid development of data-centric web applications.
-*   **Visualization:** Interactive heatmaps (Folium) and dynamic charts (Plotly).
-*   **Interaction:** A unified chat interface for hybrid queries (e.g., *"Show me the map of King County and explain the tax credits available there"*).
-
----
-
-## 4. End-to-End Data Engineering Lifecycle
-
-This project demonstrates a complete, industry-standard Data Engineering pipeline.
-
-### 4.1 Architecture Diagram
-
-```ascii
-[ RAW SOURCES ]       [ ETL & PROCESSING ]          [ SERVING LAYER ]
-
-   (CSV)               +------------------+         +-----------------+
-EV Registrations  ---> |   Pandas ETL     |  ---->  |  Streamlit App  |
-                       | (Clean, Feature) |         |  (Dash + Chat)  |
-   (PDF)               +------------------+         +--------+--------+
-Policy Docs       ---> |    LangChain     |                  ^
-                       | (Chunk & Embed)  |                  |
-                       +--------+---------+                  |
-                                |                            |
-                                v                            |
-                       +--------+---------+         +--------+--------+
-                       |    Pinecone      | <-----> |   LangGraph     |
-                       |   (Vector DB)    |         |  Orchestrator   |
-                       +------------------+         +-----------------+
+# 6. Open the dashboard
+# Access at http://localhost:8501
 ```
 
-### 4.2 Core Engineering Concepts Applied
-1.  **ETL (Extract, Transform, Load):**
-    *   **Extract:** Automated ingestion of government CSVs and PDF reports.
-    *   **Transform:**
-        *   *Imputation:* Handling missing vehicle metadata (MSRP/Range).
-        *   *Normalization:* Standardizing geographic entities for SQL compatibility.
-        *   *Feature Engineering:* Calculating `Adoption_Velocity` metrics per zip code.
-    *   **Load:** Persisting optimized data structures for low-latency querying.
+---
 
-2.  **Vector Search & RAG:**
-    *   **Semantic Indexing:** Moving beyond keyword search to semantic understanding.
-    *   **Context Window Management:** Optimizing chunk sizes for local model performance.
+## Maintenance & Commands
 
-3.  **Stateful Orchestration:**
-    *   Replacing brittle "if/else" logic with **Graph-based workflows** that can handle errors, loops, and conditional branching.
+| Action | Command |
+|--------|---------|
+| Start Containers | `docker compose up -d` |
+| Stop Containers | `docker compose down` |
+| View Logs | `docker compose logs -f streamlit` |
+| Run Tests | `docker compose run --rm streamlit pytest tests/ -v` |
+| Reset Environment | `docker compose down -v` |
+| Enable Monitoring | `docker compose --profile monitoring up -d` (Access at port 9090) |
 
 ---
 
-## 5. Implementation Roadmap
+## Project Structure
 
-### Phase 1: Data Engineering & Foundation
-*   **Goal:** Establish clean data pipelines and local AI environment.
-*   **Deliverables:**
-    *   Cleaned Parquet/CSV dataset.
-    *   Populated Pinecone Vector Index.
-    *   Configured Ollama instance.
-
-### Phase 2: Analytics & Modeling
-*   **Goal:** Develop the deterministic tools for the AI agents.
-*   **Deliverables:**
-    *   K-Means Clustering model (identifying adoption hotspots).
-    *   Python library of statistical functions.
-
-### Phase 3: Intelligence Engine Development
-*   **Goal:** Build and test the LangGraph workflow.
-*   **Deliverables:**
-    *   `Router` node for intent classification.
-    *   `DataAnalyst` and `PolicyExpert` chains.
-    *   Validated "Chat with Data" pipeline.
-
-### Phase 4: Application Integration
-*   **Goal:** Assemble the user interface.
-*   **Deliverables:**
-    *   Streamlit Dashboard with side-by-side Map and Chat.
-    *   Integrated error handling and latency optimization.
-
----
-
-## 6. Resources
-
-| Component | Technology | Cost Tier | Notes |
-| :--- | :--- | :--- | :--- |
-| **Compute / Inference** | **Ollama** (Llama 3) | **$0.00** | Runs on local hardware (Mac M-Series recommeded). |
-| **Orchestration** | **LangGraph** | **$0.00** | Open Source MIT License. |
-| **Vector Database** | **Pinecone** | **$0.00** | Free Starter Tier (1 Index, 100k vectors). |
-| **Frontend Storage** | **GitHub** | **$0.00** | Code repository and version control. |
-| **Frontend Framework** | **Streamlit** | **$0.00** | Open Source framework. |
+```
+EV_Project/
+├── app.py                          # Landing page + Prometheus metrics
+├── pages/
+│   ├── 1_Dashboard.py              # Analytics dashboard
+│   ├── 2_Chat.py                   # AI chat with RAG source drawer
+│   └── 3_Charger_Optimizer.py      # K-Means charger placement
+├── src/
+│   ├── forecasting/
+│   │   └── forecaster.py           # EVForecaster — Prophet + ARIMA
+│   ├── tools/
+│   │   └── chart_tool.py           # LangGraph chart generation tool
+│   ├── components/
+│   │   └── metrics.py              # Glassmorphism KPI cards
+│   └── pages/
+│       └── charger_optimizer.py    # Optimizer business logic
+├── scripts/
+│   ├── requirements.txt
+│   ├── agent_workflow.py           # LangGraph 4-node workflow
+│   ├── analytics_tools.py          # DuckDB query functions
+│   ├── rag_query.py                # Pinecone RAG chain
+│   └── setup_rag.py                # One-time vector DB indexer
+├── data/
+│   ├── processed/
+│   │   └── Electric_Vehicle_Population_Data.parquet
+│   └── policy/                     # Markdown policy docs for RAG
+├── tests/
+│   └── test_forecaster.py
+├── Dockerfile.streamlit
+├── docker-compose.yml
+└── prometheus.yml
+```
 
 ---
+
+## Setup Details
+For more detailed information, role of Docker, and troubleshooting, see [SETUP_GUIDE.md](SETUP_GUIDE.md).

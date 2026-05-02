@@ -2,6 +2,7 @@ pandas
 pyarrow
 openpyxl
 folium
+streamlit-folium
 plotly
 streamlit
 watchdog
@@ -15,7 +16,16 @@ langchain-text-splitters
 langchain-ollama
 langchain-pinecone
 langgraph
+langchain-core
 duckdb
 scikit-learn
 matplotlib
 seaborn
+requests
+# Phase 1 — forecasting
+prophet
+statsmodels
+# Phase 3 — UI
+streamlit-lottie
+# Phase 4 — observability
+prometheus-client
