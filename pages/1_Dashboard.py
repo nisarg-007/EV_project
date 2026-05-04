@@ -147,6 +147,46 @@ SCALES = {
     "Amber → Pink":  [[0,"#FF6B35"],[1,"#FF6B35"]],
 }
 
+def get_insight_style():
+    return """
+    <style>
+    .insight-card {
+        background: rgba(204, 255, 0, 0.03);
+        border-left: 3px solid #CCFF00;
+        border-radius: 0 12px 12px 0;
+        padding: 1rem 1.25rem;
+        margin-top: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: #B0B0C0;
+        border: 1px solid rgba(204,255,0,0.1);
+        border-left-width: 3px;
+    }
+    .insight-label {
+        color: #CCFF00;
+        font-weight: 700;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    </style>
+    """
+
+def render_insight(text):
+    st.markdown(f"""
+    <div class="insight-card">
+        <div class="insight-label"><span>✨</span> AI Insight</div>
+        {text}
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown(get_insight_style(), unsafe_allow_html=True)
+
 def dt(fig, h=430, ml=55, mr=20, mt=52, mb=38):
     fig.update_layout(
         paper_bgcolor="#0A0D14", plot_bgcolor="#0E0E14",
@@ -365,6 +405,11 @@ with col_map:
                 legend=dict(bgcolor="rgba(10,13,20,.88)",bordercolor="#1E1E2A",borderwidth=1,font=dict(color="#B0B0C0",size=10)),
             )
             st.plotly_chart(fig_map, use_container_width=True, config={"scrollZoom": True})
+            
+            # Dynamic Map Insight
+            unique_makes = samp['Make'].nunique()
+            top_m = samp['Make'].mode()[0] if not samp.empty else "N/A"
+            render_insight(f"Spatial analysis of {len(samp):,} sampled vehicles shows a high concentration of **{top_m}** registrations in the selected region. Across this area, we detect **{unique_makes}** distinct EV brands represented.")
         else:
             st.info("No location data available for current filter.")
 
@@ -387,6 +432,12 @@ with col_county:
         fig_cty.update_layout(xaxis=dict(tickangle=-35), coloraxis_showscale=False)
     dt(fig_cty, h=490)
     st.plotly_chart(fig_cty, use_container_width=True)
+
+    # Dynamic County Insight
+    top_c = cdata.iloc[0]
+    total_sel = df.shape[0]
+    share = (top_c['EV Count'] / total_sel * 100) if total_sel > 0 else 0
+    render_insight(f"**{top_c['County']} County** currently leads your selection with **{top_c['EV Count']:,}** registrations, accounting for **{share:.1f}%** of all vehicles in this filtered view.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 2 — ADOPTION TREND (full width, interactive)
@@ -433,6 +484,14 @@ fig_trend.update_layout(hovermode='x unified', title=None)
 dt(fig_trend, h=chart_h)
 st.plotly_chart(fig_trend, use_container_width=True)
 
+# Dynamic Trend Insight
+if len(yearly) > 1:
+    peak_yr = yearly.loc[yearly['Registrations'].idxmax()]
+    start_val = yearly.iloc[0]['Cumulative']
+    end_val = yearly.iloc[-1]['Cumulative']
+    total_growth = ((end_val - start_val) / start_val * 100) if start_val > 0 else 0
+    render_insight(f"Adoption peaked in **{int(peak_yr['Model Year'])}** with **{int(peak_yr['Registrations']):,}** new registrations. Since {int(yearly.iloc[0]['Model Year'])}, cumulative adoption has grown by **{total_growth:.0f}%**.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 3 — BEV vs PHEV stacked area  +  CAFV donut
 # ══════════════════════════════════════════════════════════════════════════════
@@ -463,6 +522,12 @@ with col_area:
     dt(fig_area, h=chart_h)
     st.plotly_chart(fig_area, use_container_width=True)
 
+    # Dynamic Area Insight
+    last_bev = bev_d.iloc[-1] if not bev_d.empty else 0
+    last_phev = phev_d.iloc[-1] if not phev_d.empty else 0
+    ratio = (last_bev / (last_bev + last_phev) * 100) if (last_bev + last_phev) > 0 else 0
+    render_insight(f"In the most recent model year ({years[-1]}), Battery Electric Vehicles (BEVs) captured **{ratio:.1f}%** of the market share compared to PHEVs.")
+
 with col_cafv:
     section("CAFV Eligibility")
     cafv_style = st.radio("Chart type", ["Donut","Bar"], key="cs", horizontal=True, label_visibility="collapsed")
@@ -487,6 +552,11 @@ with col_cafv:
         fig_cafv.update_layout(showlegend=False)
         dt(fig_cafv, h=chart_h)
     st.plotly_chart(fig_cafv, use_container_width=True)
+
+    # Dynamic CAFV Insight
+    elig = cafv[cafv['Status']=='CAFV Eligible']['Count'].sum()
+    elig_pct = (elig / cafv['Count'].sum() * 100) if cafv['Count'].sum() > 0 else 0
+    render_insight(f"**{elig_pct:.1f}%** of your filtered fleet is officially **CAFV Eligible**, qualifying for potential state tax exemptions and incentives.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 4 — EV TYPE PIE  +  MAKES BAR
@@ -531,6 +601,10 @@ with col_makes:
     dt(fig_make, h=chart_h)
     st.plotly_chart(fig_make, use_container_width=True)
 
+    # Dynamic Make Insight
+    top_m2 = mdata.iloc[0]
+    render_insight(f"**{top_m2['Make']}** is the dominant manufacturer in this segment. The top 3 makes (**{', '.join(mdata['Make'].head(3).tolist())}**) represent a significant majority of the registrations.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 5 — TOP CITIES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -552,6 +626,10 @@ else:
     fig_city.update_layout(paper_bgcolor="#0A0D14", font_color="#B0B0C0", height=chart_h,
                             margin=dict(l=0,r=0,t=10,b=0))
 st.plotly_chart(fig_city, use_container_width=True)
+
+# Dynamic City Insight
+top_city = cdata2.iloc[0]
+render_insight(f"**{top_city['City']}** ranks as the #1 city for EV adoption in your current selection, with **{top_city['EV Count']:,}** registered vehicles.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 6 — ELECTRIC RANGE DISTRIBUTION (BEV)
@@ -581,6 +659,11 @@ fig_rng.update_layout(showlegend=False, xaxis=dict(tickangle=-30),
 dt(fig_rng, h=chart_h)
 st.plotly_chart(fig_rng, use_container_width=True)
 
+# Dynamic Range Insight
+avg_rng = bev_df['Electric Range'].mean()
+top_rng_make = bev_df.groupby('Make')['Electric Range'].median().idxmax() if not bev_df.empty else "N/A"
+render_insight(f"The average electric range for this selection is **{avg_rng:.1f} miles**. Currently, **{top_rng_make}** demonstrates the highest median range among major manufacturers.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 7 — MAKE × MODEL YEAR HEATMAP
 # ══════════════════════════════════════════════════════════════════════════════
@@ -605,3 +688,9 @@ fig_hm.update_layout(paper_bgcolor="#0A0D14", plot_bgcolor="#0E0E14", font_color
 fig_hm.update_xaxes(side="bottom", tickangle=-30, gridcolor="#1E1E2A")
 fig_hm.update_yaxes(gridcolor="#1E1E2A")
 st.plotly_chart(fig_hm, use_container_width=True)
+
+# Dynamic Heatmap Insight
+latest_yr = hm_yr[1]
+latest_data = hm_df[hm_df['Model Year'] == latest_yr]
+top_latest = latest_data['Make'].value_counts().idxmax() if not latest_data.empty else "N/A"
+render_insight(f"Heatmap density shows that in **{latest_yr}**, **{top_latest}** emerged as the most frequently registered brand, indicating strong recent market momentum.")
