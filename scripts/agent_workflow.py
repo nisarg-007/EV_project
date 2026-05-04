@@ -73,22 +73,24 @@ class GraphState(TypedDict):
     data_context: str
     policy_context: str
     final_answer: str
+    history: str
 
 def get_llm():
     try:
         model_name = OLLAMA_MODEL
     except NameError:
         model_name = "llama3.2"
-    return ChatOllama(model=model_name)
+    return ChatOllama(model=model_name, base_url="http://127.0.0.1:11434")
 
 def router_node(state: GraphState) -> GraphState:
     question = state.get("question", "")
+    history = state.get("history", "")
     llm = get_llm()
     prompt = PromptTemplate.from_template(ROUTER_PROMPT)
     chain = prompt | llm
     
     try:
-        route_result = chain.invoke({"question": question}).content.strip().lower()
+        route_result = chain.invoke({"question": question, "history": history}).content.strip().lower()
     except Exception as e:
         print(f"Error in router: {e}")
         route_result = "both"
@@ -162,15 +164,16 @@ def synthesizer_node(state: GraphState) -> GraphState:
     if route == "policy" and "No relevant policy documents" in policy_context:
         return {"final_answer": "Policy data is currently unavailable because the RAG system is not configured."}
         
+    history = state.get("history", "")
     try:
         if route == "data":
             prompt = PromptTemplate.from_template(DATA_SYNTHESIS_PROMPT)
             chain = prompt | llm
-            final_answer = chain.invoke({"question": question, "data": data_context}).content
+            final_answer = chain.invoke({"question": question, "data": data_context, "history": history}).content
         elif route == "policy":
             prompt = PromptTemplate.from_template(POLICY_SYNTHESIS_PROMPT)
             chain = prompt | llm
-            final_answer = chain.invoke({"question": question, "policy": policy_context}).content
+            final_answer = chain.invoke({"question": question, "policy": policy_context, "history": history}).content
         else:
             if "No relevant policy documents" in policy_context:
                 policy_context = "Policy data is currently unavailable because the RAG system is not configured."
@@ -179,7 +182,8 @@ def synthesizer_node(state: GraphState) -> GraphState:
             final_answer = chain.invoke({
                 "question": question, 
                 "data": data_context, 
-                "policy": policy_context
+                "policy": policy_context,
+                "history": history,
             }).content
     except Exception as e:
         final_answer = f"Error in synthesis: {e}"
@@ -309,7 +313,7 @@ def _forecast_response(question: str) -> str:
         )
 
 
-def run_agent(question: str) -> str:
+def run_agent(question: str, history: str = "") -> str:
     # Handle greetings and general capability questions without hitting the data pipeline
     if _GREETING_PATTERNS.search(question):
         return _greeting_response()
@@ -320,7 +324,7 @@ def run_agent(question: str) -> str:
 
     try:
         graph = build_graph()
-        result = graph.invoke({"question": question})
+        result = graph.invoke({"question": question, "history": history})
         return result.get("final_answer", "No answer generated.")
     except Exception as e:
         return f"Agent failed to run: {e}"

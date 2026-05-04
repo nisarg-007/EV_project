@@ -43,28 +43,30 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --bg: #08090F;
-    --surface: #0D1117;
-    --card: #111827;
-    --border: #1A2236;
-    --cyan: #00D4FF;
-    --purple: #7C3AED;
-    --pink: #F72585;
-    --green: #10B981;
-    --t1: #F1F5F9;
-    --t2: #CBD5E1;
-    --t3: #64748B;
-    --t4: #334155;
+    --bg: #08080C;
+    --surface: #0E0E14;
+    --card: #121218;
+    --border: #1E1E2A;
+    --border2: #2A2A38;
+    --volt: #CCFF00;
+    --volt-dim: rgba(204,255,0,0.08);
+    --volt-mid: rgba(204,255,0,0.18);
+    --ember: #FF6B35;
+    --ice: #2DD4BF;
+    --t1: #EAEAF0;
+    --t2: #B0B0C0;
+    --t3: #6B6B80;
+    --t4: #3A3A4E;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, .main, [data-testid="stAppViewContainer"] {
     background: var(--bg) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Manrope', -apple-system, sans-serif !important;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -84,7 +86,7 @@ header[data-testid="stHeader"] {
 
 /* ── Sidebar — tight, no wasted space ── */
 [data-testid="stSidebar"] {
-    background: #09101A !important;
+    background: #0A0A10 !important;
     border-right: 1px solid var(--border) !important;
 }
 [data-testid="stSidebar"] > div:first-child {
@@ -114,9 +116,9 @@ div[data-testid="stSidebar"] .stButton > button {
     transition: all 0.15s ease !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(0,212,255,0.07) !important;
-    border-color: rgba(0,212,255,0.2) !important;
-    color: var(--cyan) !important;
+    background: rgba(204,255,0,0.07) !important;
+    border-color: rgba(204,255,0,0.2) !important;
+    color: var(--volt) !important;
     transform: none !important;
     box-shadow: none !important;
 }
@@ -133,21 +135,21 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 [data-testid="stMetric"]::after {
     content: ''; position: absolute;
     top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    background: linear-gradient(90deg, var(--ice), var(--volt));
 }
 [data-testid="stMetric"]:hover {
-    border-color: rgba(0,212,255,0.3) !important;
-    box-shadow: 0 0 24px rgba(0,212,255,0.08), 0 8px 32px rgba(0,0,0,0.3) !important;
+    border-color: rgba(204,255,0,0.3) !important;
+    box-shadow: 0 0 24px rgba(204,255,0,0.08), 0 8px 32px rgba(0,0,0,0.3) !important;
     transform: translateY(-2px) !important;
 }
-[data-testid="stMetricValue"] { color: var(--cyan) !important; font-size: 1.75rem !important; font-weight: 800 !important; }
+[data-testid="stMetricValue"] { color: var(--volt) !important; font-size: 1.75rem !important; font-weight: 800 !important; }
 [data-testid="stMetricLabel"] { color: var(--t3) !important; font-size: 0.7rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.4); }
+::-webkit-scrollbar-thumb:hover { background: rgba(204,255,0,0.4); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -158,43 +160,43 @@ with st.sidebar:
     # Dataset stats
     st.markdown(f"""
     <div style="padding:0 1.25rem;">
-        <div style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;">Dataset</div>
+        <div style="color:#3A3A4E;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;">Dataset</div>
         <div style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.78rem;">
             <div style="display:flex;justify-content:space-between;">
-                <span style="color:#64748B;">Records</span><span style="color:#00D4FF;font-weight:600;">276,828</span>
+                <span style="color:#6B6B80;">Records</span><span style="color:#CCFF00;font-weight:600;">276,828</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-                <span style="color:#64748B;">State</span><span style="color:#00D4FF;font-weight:600;">Washington</span>
+                <span style="color:#6B6B80;">State</span><span style="color:#CCFF00;font-weight:600;">Washington</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-                <span style="color:#64748B;">Updated</span><span style="color:#10B981;font-weight:600;">{datetime.now().strftime('%b %d, %Y')}</span>
+                <span style="color:#6B6B80;">Updated</span><span style="color:#2DD4BF;font-weight:600;">{datetime.now().strftime('%b %d, %Y')}</span>
             </div>
         </div>
     </div>
-    <div style="height:1px;background:#1A2236;margin:0.75rem 1.25rem;"></div>
-    <div style="padding:0.5rem 1.25rem 0;color:#334155;font-size:0.68rem;text-align:center;">Team 19 · EV Intelligence</div>
+    <div style="height:1px;background:#1E1E2A;margin:0.75rem 1.25rem;"></div>
+    <div style="padding:0.5rem 1.25rem 0;color:#3A3A4E;font-size:0.68rem;text-align:center;">Team 19 · EV Intelligence</div>
     """, unsafe_allow_html=True)
 
 # ── HERO ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="
     position:relative; overflow:hidden;
-    background:linear-gradient(135deg,#0D0A1E 0%,#0A1628 50%,#0D1117 100%);
-    border:1px solid #1A2236; border-radius:24px;
+    background:linear-gradient(135deg,#0D0A1E 0%,#0A1628 50%,#0E0E14 100%);
+    border:1px solid #1E1E2A; border-radius:24px;
     padding:4rem 3rem; margin:1.5rem 0 2rem; text-align:center;
 ">
     <div style="position:absolute;top:-80px;left:-80px;width:320px;height:320px;border-radius:50%;
-                background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);pointer-events:none;"></div>
+                background:radial-gradient(circle,rgba(45,212,191,0.18) 0%,transparent 70%);pointer-events:none;"></div>
     <div style="position:absolute;bottom:-80px;right:-80px;width:360px;height:360px;border-radius:50%;
-                background:radial-gradient(circle,rgba(0,212,255,0.12) 0%,transparent 70%);pointer-events:none;"></div>
+                background:radial-gradient(circle,rgba(204,255,0,0.12) 0%,transparent 70%);pointer-events:none;"></div>
     <div style="position:relative;z-index:1;">
-        <h1 style="color:#F1F5F9;font-size:3.25rem;font-weight:900;margin:0 0 0.75rem;
+        <h1 style="color:#EAEAF0;font-size:3.25rem;font-weight:900;margin:0 0 0.75rem;
                    letter-spacing:-2px;line-height:1.1;">
-            <span style="background:linear-gradient(90deg,#7C3AED,#00D4FF);
+            <span style="background:linear-gradient(90deg,#2DD4BF,#CCFF00);
                          -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                          background-clip:text;">EV Intelligence</span><br/>Platform
         </h1>
-        <p style="color:#64748B;font-size:1.05rem;margin:0 auto;max-width:500px;line-height:1.65;font-weight:400;">
+        <p style="color:#6B6B80;font-size:1.05rem;margin:0 auto;max-width:500px;line-height:1.65;font-weight:400;">
             Real-time analytics, AI-powered insights, and interactive visualizations for Washington State electric vehicle data.
         </p>
     </div>
@@ -211,8 +213,8 @@ st.markdown("""
     margin-bottom: 2rem;
 }
 .feat-card {
-    background: #0D1117;
-    border: 1px solid #1A2236;
+    background: #0E0E14;
+    border: 1px solid #1E1E2A;
     border-radius: 16px;
     padding: 1.5rem 1.25rem 1.25rem;
     transition: all 0.2s ease;
@@ -224,45 +226,45 @@ st.markdown("""
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--c1, #7C3AED), var(--c2, #00D4FF));
+    background: linear-gradient(90deg, var(--c1, #2DD4BF), var(--c2, #CCFF00));
 }
 .feat-card:hover {
-    border-color: rgba(0,212,255,0.3);
+    border-color: rgba(204,255,0,0.3);
     transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 16px rgba(0,212,255,0.06);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 16px rgba(204,255,0,0.06);
 }
 .feat-badge {
     width: 40px; height: 40px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.15rem; margin-bottom: 0.85rem;
 }
-.feat-title { font-size: 0.9rem; font-weight: 700; color: #F1F5F9; margin-bottom: 0.35rem; }
-.feat-desc  { font-size: 0.78rem; color: #64748B; line-height: 1.55; }
+.feat-title { font-size: 0.9rem; font-weight: 700; color: #EAEAF0; margin-bottom: 0.35rem; }
+.feat-desc  { font-size: 0.78rem; color: #6B6B80; line-height: 1.55; }
 .feat-link  {
     display: inline-flex; align-items: center; gap: 0.25rem;
-    margin-top: 0.85rem; color: #00D4FF; font-size: 0.74rem; font-weight: 600;
+    margin-top: 0.85rem; color: #CCFF00; font-size: 0.74rem; font-weight: 600;
 }
 </style>
 <div class="feat-grid">
-    <div class="feat-card" style="--c1:#00D4FF;--c2:#10B981;">
-        <div class="feat-badge" style="background:rgba(0,212,255,0.1);">📊</div>
+    <div class="feat-card" style="--c1:#CCFF00;--c2:#2DD4BF;">
+        <div class="feat-badge" style="background:rgba(204,255,0,0.1);">📊</div>
         <div class="feat-title">Analytics Dashboard</div>
         <div class="feat-desc">County maps, adoption curves, make breakdowns — every chart has live controls.</div>
         <div class="feat-link">Open Dashboard →</div>
     </div>
-    <div class="feat-card" style="--c1:#7C3AED;--c2:#00D4FF;">
-        <div class="feat-badge" style="background:rgba(124,58,237,0.1);">🤖</div>
+    <div class="feat-card" style="--c1:#2DD4BF;--c2:#CCFF00;">
+        <div class="feat-badge" style="background:rgba(45,212,191,0.1);">🤖</div>
         <div class="feat-title">AI Chat</div>
         <div class="feat-desc">Ask anything — LangGraph agent with Pinecone RAG and llama3.2 running locally.</div>
         <div class="feat-link">Start Chatting →</div>
     </div>
-    <div class="feat-card" style="--c1:#F72585;--c2:#7C3AED;">
-        <div class="feat-badge" style="background:rgba(247,37,133,0.1);">⚡</div>
+    <div class="feat-card" style="--c1:#FF6B35;--c2:#2DD4BF;">
+        <div class="feat-badge" style="background:rgba(255,107,53,0.1);">⚡</div>
         <div class="feat-title">Charger Optimizer</div>
         <div class="feat-desc">K-Means clustering on 276k+ records to place charging stations. GeoJSON export.</div>
         <div class="feat-link">Optimize →</div>
     </div>
-    <div class="feat-card" style="--c1:#10B981;--c2:#00D4FF;">
+    <div class="feat-card" style="--c1:#2DD4BF;--c2:#CCFF00;">
         <div class="feat-badge" style="background:rgba(16,185,129,0.1);">📈</div>
         <div class="feat-title">Forecasting</div>
         <div class="feat-desc">County-level EV growth predictions to 2030 using Prophet + ARIMA with confidence bands.</div>
@@ -272,7 +274,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── STATS ─────────────────────────────────────────────────────────────────────
-st.markdown('<div style="color:#475569;font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Platform Overview</div>', unsafe_allow_html=True)
+st.markdown('<div style="color:#3A3A4E;font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.75rem;">Platform Overview</div>', unsafe_allow_html=True)
 
 c1, c2, c3, c4 = st.columns(4)
 with c1: st.metric("Total EV Records", "276,828",  delta="Washington State")
@@ -282,15 +284,15 @@ with c4: st.metric("Cluster Segments", "4",         delta="K-Means analysis")
 
 # ── FOOTER ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
-<div style="margin-top:3rem;padding:1.25rem 0;border-top:1px solid #1A2236;
+<div style="margin-top:3rem;padding:1.25rem 0;border-top:1px solid #1E1E2A;
             display:flex;align-items:center;justify-content:space-between;">
-    <div style="color:#334155;font-size:0.75rem;">
+    <div style="color:#3A3A4E;font-size:0.75rem;">
         EV Intelligence Platform, Team 19
     </div>
     <div style="display:flex;align-items:center;gap:0.4rem;">
-        <span style="width:6px;height:6px;border-radius:50%;background:#10B981;
-                     box-shadow:0 0 7px #10B981;display:inline-block;"></span>
-        <span style="color:#334155;font-size:0.72rem;">Systems operational</span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#2DD4BF;
+                     box-shadow:0 0 7px #2DD4BF;display:inline-block;"></span>
+        <span style="color:#3A3A4E;font-size:0.72rem;">Systems operational</span>
     </div>
 </div>
 """, unsafe_allow_html=True)

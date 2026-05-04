@@ -42,14 +42,14 @@ if not AGENT_AVAILABLE:
         from langchain_core.output_parsers import StrOutputParser
         from langchain_core.runnables import RunnablePassthrough
 
-        _embeddings  = OllamaEmbeddings(model="nomic-embed-text")
+        _embeddings  = OllamaEmbeddings(model="nomic-embed-text", base_url="http://127.0.0.1:11434")
         _vectorstore = PineconeVectorStore(
             index_name="ev-policy-docs",
             embedding=_embeddings,
             pinecone_api_key=os.getenv("PINECONE_API_KEY"),
             text_key="text",
         )
-        _llm = ChatOllama(model="llama3.2", temperature=0.3)
+        _llm = ChatOllama(model="llama3.2", temperature=0.3, base_url="http://127.0.0.1:11434")
         RAG_AVAILABLE = True
     except Exception:
         pass
@@ -57,7 +57,7 @@ if not AGENT_AVAILABLE:
     if not RAG_AVAILABLE:
         try:
             from langchain_ollama import ChatOllama
-            _llm = ChatOllama(model="llama3.2", temperature=0.3)
+            _llm = ChatOllama(model="llama3.2", temperature=0.3, base_url="http://127.0.0.1:11434")
             LLM_AVAILABLE = True
         except Exception:
             pass
@@ -120,6 +120,39 @@ def _parse_chart_intent(query: str) -> dict | None:
     }
 
 
+def _build_history_context() -> str:
+    messages = st.session_state.get("messages", [])[-8:]
+    history_lines = []
+    for msg in messages:
+        if msg["role"] == "user":
+            history_lines.append(f"User: {msg['content']}")
+        elif msg["role"] == "assistant":
+            history_lines.append(f"Assistant: {msg['content']}")
+    return "\n".join(history_lines)
+
+
+def _recommendations_for_history(history: str) -> list[str]:
+    history = history.lower()
+    recs = []
+    if "forecast" in history or "predict" in history:
+        recs.append("Compare EV forecast scenarios for King vs. Pierce County")
+    if "county" in history or "map" in history:
+        recs.append("Show a county-level EV density map")
+    if "make" in history or "model" in history:
+        recs.append("Explore the top EV makes by registration count")
+    if "charge" in history or "station" in history or "hotspot" in history:
+        recs.append("Find the best locations for new fast chargers")
+    if "incentive" in history or "credit" in history or "policy" in history:
+        recs.append("Summarize Washington state EV incentives and CAFV eligibility")
+    if not recs:
+        recs = [
+            "Which cities have the highest EV adoption?",
+            "What is the BEV vs PHEV split in WA?",
+            "How has EV adoption grown over time?",
+        ]
+    return recs
+
+
 def get_response_stream(query: str):
     """
     Generator that yields text chunks so we can stream into st.write_stream.
@@ -148,10 +181,14 @@ def get_response_stream(query: str):
                 # Fall through to normal LLM path
 
     # 1. Full agent
+    history = _build_history_context()
     if AGENT_AVAILABLE:
-        result = run_agent(query)
-        for ch in result:
-            yield ch
+        result = run_agent(query, history=history)
+        if isinstance(result, str):
+            yield result
+        else:
+            for ch in result:
+                yield ch
         return
 
     # 2. RAG — search Pinecone first, then let Ollama answer with context
@@ -180,11 +217,16 @@ def get_response_stream(query: str):
                     "answer using your knowledge about Washington State EV data "
                     "(276,000+ registrations, King County leads, Tesla ~45% share, etc.). "
                     "Always give a helpful, complete answer.\n\n"
+                    "Conversation History:\n{history}\n\n"
                     "Policy Context (use if relevant):\n{context}\n\n"
                     "Question: {question}\n\nAnswer:"
                 )
                 chain = (
-                    {"context": lambda _: context, "question": RunnablePassthrough()}
+                    {
+                        "context": lambda _: context,
+                        "history": lambda _: history,
+                        "question": RunnablePassthrough()
+                    }
                     | prompt
                     | _llm
                     | StrOutputParser()
@@ -195,10 +237,14 @@ def get_response_stream(query: str):
                     "You have knowledge of 276,000+ EV registrations: King County leads with 50k+, "
                     "Tesla has ~45% share, ~79% are BEVs, avg range ~234 miles. "
                     "Answer the following question helpfully and concisely.\n\n"
+                    "Conversation History:\n{history}\n\n"
                     "Question: {question}\n\nAnswer:"
                 )
                 chain = (
-                    {"question": RunnablePassthrough()}
+                    {
+                        "history": lambda _: history,
+                        "question": RunnablePassthrough()
+                    }
                     | prompt
                     | _llm
                     | StrOutputParser()
@@ -215,9 +261,11 @@ def get_response_stream(query: str):
         try:
             prompt = ChatPromptTemplate.from_template(
                 "You are an expert on Washington State electric vehicles. "
-                "Answer the following question helpfully.\n\nQuestion: {question}\n\nAnswer:"
+                "Answer the following question helpfully.\n\n"
+                "Conversation History:\n{history}\n\n"
+                "Question: {question}\n\nAnswer:"
             )
-            chain = ({"question": RunnablePassthrough()} | prompt | _llm | StrOutputParser())
+            chain = ({"history": lambda _: history, "question": RunnablePassthrough()} | prompt | _llm | StrOutputParser())
             for chunk in chain.stream(query):
                 yield chunk
             return
@@ -305,30 +353,30 @@ st.set_page_config(layout="wide", page_title="EV Chat", page_icon="🤖", initia
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --bg: #08090F;
-    --surface: #0D1117;
-    --card: #111827;
-    --border: #1A2236;
-    --border2: #243045;
-    --cyan: #00D4FF;
-    --purple: #7C3AED;
-    --green: #10B981;
-    --amber: #F59E0B;
-    --red: #EF4444;
-    --t1: #F8FAFC;
-    --t2: #E2E8F0;
-    --t3: #94A3B8;
-    --t4: #475569;
-    --user-bg: #162032;
-    --user-border: #1E3A5F;
+    --bg: #08080C;
+    --surface: #0E0E14;
+    --card: #121218;
+    --border: #1E1E2A;
+    --border2: #2A2A38;
+    --volt: #CCFF00;
+    --volt-dim: rgba(204,255,0,0.08);
+    --volt-mid: rgba(204,255,0,0.18);
+    --ember: #FF6B35;
+    --ice: #2DD4BF;
+    --t1: #EAEAF0;
+    --t2: #B0B0C0;
+    --t3: #6B6B80;
+    --t4: #3A3A4E;
+    --user-bg: rgba(204,255,0,0.05);
+    --user-border: rgba(204,255,0,0.15);
 }
 
 html, body, .main, [data-testid="stAppViewContainer"] {
     background: var(--bg) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif !important;
+    font-family: 'Manrope', -apple-system, sans-serif !important;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -348,7 +396,7 @@ header[data-testid="stHeader"] {
 
 /* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background: #09101A !important;
+    background: #0A0A10 !important;
     border-right: 1px solid var(--border) !important;
 }
 [data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
@@ -365,8 +413,8 @@ div[data-testid="stSidebar"] .stButton > button {
     letter-spacing: 0 !important; transition: all 0.15s !important;
 }
 div[data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(0,212,255,0.07) !important; border-color: rgba(0,212,255,0.2) !important;
-    color: var(--cyan) !important; transform: none !important; box-shadow: none !important;
+    background: rgba(204,255,0,0.07) !important; border-color: rgba(204,255,0,0.2) !important;
+    color: var(--volt) !important; transform: none !important; box-shadow: none !important;
 }
 
 /* ── CHAT MESSAGES — Apple/GPT style ── */
@@ -379,12 +427,12 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 
 /* Avatars */
 [data-testid="chatAvatarIcon-user"] {
-    background: linear-gradient(135deg,#7C3AED,#00D4FF) !important;
+    background: linear-gradient(135deg,#2DD4BF,#CCFF00) !important;
     border-radius: 50% !important;
-    box-shadow: 0 2px 8px rgba(124,58,237,0.4) !important;
+    box-shadow: 0 2px 8px rgba(45,212,191,0.4) !important;
 }
 [data-testid="chatAvatarIcon-assistant"] {
-    background: #111827 !important;
+    background: #121218 !important;
     border: 1px solid var(--border2) !important;
     border-radius: 50% !important;
 }
@@ -413,7 +461,7 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 /* Assistant bubble — subtle left accent */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) [data-testid="stChatMessageContent"] {
     border-color: var(--border) !important;
-    border-left: 2px solid rgba(0,212,255,0.35) !important;
+    border-left: 2px solid rgba(204,255,0,0.35) !important;
     border-radius: 20px 20px 20px 4px !important;
 }
 
@@ -421,7 +469,7 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 [data-testid="stChatMessageContent"] p { margin: 0 0 0.55rem !important; }
 [data-testid="stChatMessageContent"] p:last-child { margin-bottom: 0 !important; }
 [data-testid="stChatMessageContent"] strong { color: var(--t1) !important; font-weight: 600 !important; }
-[data-testid="stChatMessageContent"] em { color: #94A3B8 !important; }
+[data-testid="stChatMessageContent"] em { color: #6B6B80 !important; }
 [data-testid="stChatMessageContent"] ul, [data-testid="stChatMessageContent"] ol {
     padding-left: 1.25rem !important; margin: 0.35rem 0 !important;
 }
@@ -431,17 +479,17 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     margin: 0.6rem 0 !important; font-size: 0.875rem !important; border-radius: 10px !important; overflow: hidden !important;
 }
 [data-testid="stChatMessageContent"] th {
-    background: rgba(0,212,255,0.1) !important; color: #00D4FF !important;
+    background: rgba(204,255,0,0.1) !important; color: #CCFF00 !important;
     padding: 0.45rem 0.8rem !important; border: 1px solid var(--border) !important;
     font-weight: 600 !important; font-size: 0.78rem !important;
     letter-spacing: 0.04em !important; text-transform: uppercase !important;
 }
 [data-testid="stChatMessageContent"] td {
-    padding: 0.4rem 0.8rem !important; border: 1px solid #1A2236 !important; color: var(--t2) !important;
+    padding: 0.4rem 0.8rem !important; border: 1px solid #1E1E2A !important; color: var(--t2) !important;
 }
 [data-testid="stChatMessageContent"] tr:nth-child(even) td { background: rgba(255,255,255,0.02) !important; }
 [data-testid="stChatMessageContent"] code {
-    background: rgba(0,212,255,0.09) !important; color: #00D4FF !important;
+    background: rgba(204,255,0,0.09) !important; color: #CCFF00 !important;
     padding: 0.1em 0.45em !important; border-radius: 5px !important; font-size: 0.875em !important;
 }
 
@@ -454,7 +502,7 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     display: inline-flex; align-items: center; gap: 5px; padding: 4px 0;
 }
 .thinking-dots span {
-    width: 7px; height: 7px; border-radius: 50%; background: #00D4FF;
+    width: 7px; height: 7px; border-radius: 50%; background: #CCFF00;
     animation: thinking-dot 1.3s ease-in-out infinite;
 }
 .thinking-dots span:nth-child(1) { animation-delay: 0s; }
@@ -478,12 +526,12 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     transition: border-color 0.2s, box-shadow 0.2s !important;
 }
 [data-testid="stChatInput"]:focus-within {
-    border-color: rgba(0,212,255,0.4) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px rgba(0,212,255,0.07) !important;
+    border-color: rgba(204,255,0,0.4) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px rgba(204,255,0,0.07) !important;
 }
 [data-testid="stChatInput"] textarea {
     background: transparent !important; color: var(--t1) !important;
-    font-family: 'Inter', sans-serif !important; font-size: 0.9375rem !important;
+    font-family: 'Manrope', 'IBM Plex Mono', sans-serif !important; font-size: 0.9375rem !important;
     border: none !important; padding: 0.8rem 1.1rem !important; line-height: 1.5 !important;
 }
 [data-testid="stChatInput"] textarea::placeholder { color: var(--t4) !important; }
@@ -497,8 +545,8 @@ div[data-testid="stSidebar"] .stButton > button:hover {
     white-space: nowrap !important; transition: all 0.15s !important; height: auto !important;
 }
 .pill-row .stButton > button:hover {
-    border-color: rgba(0,212,255,0.4) !important; color: var(--cyan) !important;
-    background: rgba(0,212,255,0.06) !important; transform: none !important; box-shadow: none !important;
+    border-color: rgba(204,255,0,0.4) !important; color: var(--volt) !important;
+    background: rgba(204,255,0,0.06) !important; transform: none !important; box-shadow: none !important;
 }
 
 /* ── CLEAR BUTTON ── */
@@ -516,7 +564,15 @@ div[data-testid="stSidebar"] .stButton > button:hover {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.35); }
+::-webkit-scrollbar-thumb:hover { background: rgba(204,255,0,0.35); }
+
+@media (max-width: 992px) {
+    .block-container { padding: 0 1rem 3rem !important; }
+    .pill-row { display: flex !important; flex-wrap: wrap !important; gap: 0.65rem !important; }
+    .pill-row .stButton > button { width: 100% !important; }
+    [data-testid="stChatMessageContent"] { font-size: 0.95rem !important; }
+    [data-testid="stSidebar"] { min-width: 220px !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -527,24 +583,24 @@ with st.sidebar:
     render_sidebar()
 
     # Backend status section
-    st.markdown('<div style="padding:0 1.25rem 0.25rem;"><span style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Backend</span></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:0 1.25rem 0.25rem;"><span style="color:#3A3A4E;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Backend</span></div>', unsafe_allow_html=True)
 
 
-    st.markdown('<div style="height:1px;background:#1A2236;margin:0.6rem 1.25rem;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1px;background:#1E1E2A;margin:0.6rem 1.25rem;"></div>', unsafe_allow_html=True)
 
     # Backend status
     if AGENT_AVAILABLE:
         status_bg, status_dot, status_color, status_label, status_sub = \
-            "rgba(16,185,129,.07)","#10B981","#10B981","Full Agent Active","LangChain · Pinecone · Ollama"
+            "rgba(45,212,191,.07)","#2DD4BF","#2DD4BF","Full Agent Active","LangChain · Pinecone · Ollama"
     elif RAG_AVAILABLE:
         status_bg, status_dot, status_color, status_label, status_sub = \
-            "rgba(0,212,255,.06)","#00D4FF","#00D4FF","RAG Pipeline Active","Pinecone · llama3.2 · nomic-embed"
+            "rgba(204,255,0,.06)","#CCFF00","#CCFF00","RAG Pipeline Active","Pinecone · llama3.2 · nomic-embed"
     elif LLM_AVAILABLE:
         status_bg, status_dot, status_color, status_label, status_sub = \
-            "rgba(124,58,237,.07)","#7C3AED","#7C3AED","LLM Active","llama3.2 via Ollama"
+            "rgba(45,212,191,.07)","#2DD4BF","#2DD4BF","LLM Active","llama3.2 via Ollama"
     else:
         status_bg, status_dot, status_color, status_label, status_sub = \
-            "rgba(245,158,11,.06)","#F59E0B","#F59E0B","Demo Mode","Curated responses"
+            "rgba(255,107,53,.06)","#FF6B35","#FF6B35","Demo Mode","Curated responses"
 
     st.markdown(f"""
     <div style="margin:0 1.25rem 0.6rem;padding:0.65rem 0.9rem;
@@ -554,7 +610,7 @@ with st.sidebar:
                          box-shadow:0 0 7px {status_dot};flex-shrink:0;"></span>
             <span style="color:{status_color};font-size:0.8rem;font-weight:600;">{status_label}</span>
         </div>
-        <div style="color:#475569;font-size:0.7rem;margin-top:0.2rem;padding-left:1rem;">{status_sub}</div>
+        <div style="color:#3A3A4E;font-size:0.7rem;margin-top:0.2rem;padding-left:1rem;">{status_sub}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -562,18 +618,18 @@ with st.sidebar:
     msg_count = max(len(st.session_state.get("messages", [])) - 1, 0)
     st.markdown(f"""
     <div style="padding:0 1.25rem 0.5rem;">
-        <div style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;
+        <div style="color:#3A3A4E;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;
                     text-transform:uppercase;margin-bottom:0.45rem;">Session</div>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;">
-            <span style="color:#64748B;">Messages</span>
-            <span style="color:#00D4FF;font-weight:600;background:rgba(0,212,255,0.08);
-                         border:1px solid rgba(0,212,255,0.15);border-radius:6px;
+            <span style="color:#6B6B80;">Messages</span>
+            <span style="color:#CCFF00;font-weight:600;background:rgba(204,255,0,0.08);
+                         border:1px solid rgba(204,255,0,0.15);border-radius:6px;
                          padding:0.1rem 0.55rem;font-size:0.73rem;">{msg_count}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div style="height:1px;background:#1A2236;margin:0.4rem 1.25rem 0.6rem;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1px;background:#1E1E2A;margin:0.4rem 1.25rem 0.6rem;"></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="clear-btn" style="padding:0 1.25rem;">', unsafe_allow_html=True)
     if st.button("🗑️  Clear conversation", use_container_width=True, key="clear_chat"):
@@ -585,10 +641,10 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="margin:0.75rem 1.25rem 0;padding:0.7rem 0.9rem;background:rgba(124,58,237,.06);
-                border:1px solid rgba(124,58,237,.15);border-radius:12px;">
-        <div style="color:#7C3AED;font-size:0.7rem;font-weight:600;margin-bottom:0.25rem;">💡 Tip</div>
-        <div style="color:#475569;font-size:0.7rem;line-height:1.5;">
+    <div style="margin:0.75rem 1.25rem 0;padding:0.7rem 0.9rem;background:rgba(45,212,191,.06);
+                border:1px solid rgba(45,212,191,.15);border-radius:12px;">
+        <div style="color:#2DD4BF;font-size:0.7rem;font-weight:600;margin-bottom:0.25rem;">💡 Tip</div>
+        <div style="color:#3A3A4E;font-size:0.7rem;line-height:1.5;">
             Ask about specific cities, counties, EV makes, or WA state incentives.
         </div>
     </div>
@@ -603,12 +659,12 @@ st.markdown("""
 <div style="padding:1.75rem 0 0.75rem;text-align:center;">
     <div style="display:inline-flex;align-items:center;justify-content:center;
                 width:48px;height:48px;border-radius:15px;margin-bottom:0.85rem;
-                background:linear-gradient(135deg,#7C3AED,#00D4FF);
-                box-shadow:0 6px 20px rgba(124,58,237,0.35);">⚡</div>
-    <h1 style="color:#F8FAFC;font-size:1.5rem;font-weight:700;margin:0 0 0.3rem;letter-spacing:-.4px;">
+                background:linear-gradient(135deg,#2DD4BF,#CCFF00);
+                box-shadow:0 6px 20px rgba(45,212,191,0.35);">⚡</div>
+    <h1 style="color:#EAEAF0;font-size:1.5rem;font-weight:700;margin:0 0 0.3rem;letter-spacing:-.4px;">
         EV Intelligence Assistant
     </h1>
-    <p style="color:#475569;font-size:0.84rem;margin:0;">
+    <p style="color:#3A3A4E;font-size:0.84rem;margin:0;">
         Ask me anything about Washington State electric vehicle data
     </p>
 </div>
@@ -655,8 +711,8 @@ CHART_PILLS = [
 
 st.markdown("""
 <div style="margin:1rem 0 0.4rem;display:flex;align-items:center;gap:0.5rem;">
-    <span style="color:#334155;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Ask a question</span>
-    <div style="flex:1;height:1px;background:#1A2236;"></div>
+    <span style="color:#3A3A4E;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Ask a question</span>
+    <div style="flex:1;height:1px;background:#1E1E2A;"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -673,8 +729,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("""
 <div style="margin:.75rem 0 .4rem;display:flex;align-items:center;gap:0.5rem;">
-    <span style="color:#334155;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Generate a chart</span>
-    <div style="flex:1;height:1px;background:#1A2236;"></div>
+    <span style="color:#3A3A4E;font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Generate a chart</span>
+    <div style="flex:1;height:1px;background:#1E1E2A;"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -687,6 +743,18 @@ for i, (icon, q) in enumerate(CHART_PILLS):
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+
+history_text = _build_history_context()
+recommendations = _recommendations_for_history(history_text)
+if recommendations:
+    st.markdown("""
+    <div style="background:#121218;border:1px solid #1E1E2A;border-radius:16px;padding:1rem 1.15rem;margin-bottom:1rem;">
+        <div style="color:#CCFF00;font-size:.8rem;font-weight:700;margin-bottom:.5rem;">Based on your recent questions, you might also be interested in:</div>
+        <ul style="color:#B0B0C0;margin:0;padding-left:1.2rem;line-height:1.6;">
+    """, unsafe_allow_html=True)
+    for rec in recommendations:
+        st.markdown(f"<li>{rec}</li>", unsafe_allow_html=True)
+    st.markdown("</ul></div>", unsafe_allow_html=True)
 
 # ── Chat input ─────────────────────────────────────────────────────────────────
 prompt = st.chat_input("Message EV Intelligence…")
@@ -705,7 +773,7 @@ if prompt:
             """
             <div style="display:flex;align-items:center;gap:.75rem;padding:.25rem 0;">
                 <div class="thinking-dots"><span></span><span></span><span></span></div>
-                <span style="color:#475569;font-size:.8rem;font-style:italic;">Agent thinking…</span>
+                <span style="color:#3A3A4E;font-size:.8rem;font-style:italic;">Agent thinking…</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -726,11 +794,11 @@ if prompt:
                     score = src.get("score")
                     if score is not None:
                         if score > 0.8:
-                            badge_color, badge_bg = "#10B981", "rgba(16,185,129,.12)"
+                            badge_color, badge_bg = "#2DD4BF", "rgba(45,212,191,.12)"
                         elif score > 0.6:
-                            badge_color, badge_bg = "#F59E0B", "rgba(245,158,11,.12)"
+                            badge_color, badge_bg = "#FF6B35", "rgba(255,107,53,.12)"
                         else:
-                            badge_color, badge_bg = "#EF4444", "rgba(239,68,68,.10)"
+                            badge_color, badge_bg = "#FF6B35", "rgba(255,107,53,.10)"
                         score_badge = (
                             f'<span style="background:{badge_bg};color:{badge_color};'
                             f'border:1px solid {badge_color}40;border-radius:6px;'
@@ -742,15 +810,15 @@ if prompt:
 
                     st.markdown(
                         f"""
-                        <div style="background:#111827;border:1px solid #1A2236;border-radius:10px;
+                        <div style="background:#121218;border:1px solid #1E1E2A;border-radius:10px;
                                     padding:.75rem 1rem;margin-bottom:.5rem;">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
-                                <span style="color:#00D4FF;font-size:.78rem;font-weight:600;">
+                                <span style="color:#CCFF00;font-size:.78rem;font-weight:600;">
                                     📄 {src['source']}
                                 </span>
                                 {score_badge}
                             </div>
-                            <div style="color:#64748B;font-size:.78rem;line-height:1.5;">
+                            <div style="color:#6B6B80;font-size:.78rem;line-height:1.5;">
                                 {src['preview']}…
                             </div>
                         </div>

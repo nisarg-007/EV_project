@@ -3,10 +3,22 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime
 from src.components.sidebar import render_sidebar
+
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    px = None
+    go = None
+    PLOTLY_AVAILABLE = False
+
+try:
+    from fpdf import FPDF
+except ImportError:
+    FPDF = None
 
 PARQUET_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'Electric_Vehicle_Population_Data.parquet'))
 
@@ -15,14 +27,24 @@ st.set_page_config(layout="wide", page_title="EV Dashboard", page_icon="📊", i
 # ── CSS ────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 :root {
-    --bg:#0A0D14; --card:#0D1117; --card2:#111827;
-    --border:#1E293B; --border2:#263348;
-    --cyan:#00D4FF; --purple:#7C3AED; --pink:#F72585; --green:#10B981; --amber:#F59E0B;
-    --t1:#F1F5F9; --t2:#CBD5E1; --t3:#64748B; --t4:#334155;
+    --bg: #08080C;
+    --surface: #0E0E14;
+    --card: #121218;
+    --border: #1E1E2A;
+    --border2: #2A2A38;
+    --volt: #CCFF00;
+    --volt-dim: rgba(204,255,0,0.08);
+    --volt-mid: rgba(204,255,0,0.18);
+    --ember: #FF6B35;
+    --ice: #2DD4BF;
+    --t1: #EAEAF0;
+    --t2: #B0B0C0;
+    --t3: #6B6B80;
+    --t4: #3A3A4E;
 }
-html,body,.main,[data-testid="stAppViewContainer"]{background:var(--bg)!important;font-family:'Inter',-apple-system,sans-serif!important;}
+html,body,.main,[data-testid="stAppViewContainer"]{background:var(--bg)!important;font-family:'Manrope',-apple-system,sans-serif!important;}
 .block-container{max-width:1440px!important;padding:0 2rem 2rem!important;}
 
 /* Hide top navbar and sidebar nav */
@@ -30,15 +52,15 @@ header[data-testid="stHeader"]{display:none!important;}
 [data-testid="stSidebarNav"]{display:none!important;}
 
 /* Sidebar — no wasted top space */
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#0B0E18 0%,#0F1623 100%)!important;border-right:1px solid var(--border)!important;}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#0A0A10 0%,#0E0E14 100%)!important;border-right:1px solid var(--border)!important;}
 [data-testid="stSidebar"]>div:first-child{padding:0!important;}
 [data-testid="stSidebarContent"]{padding-top:0!important;}
 
 /* Metrics */
 [data-testid="stMetric"]{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:20px!important;padding:1.2rem 1.5rem!important;transition:all .25s cubic-bezier(.4,0,.2,1)!important;position:relative;overflow:hidden;}
-[data-testid="stMetric"]::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--cyan));}
-[data-testid="stMetric"]:hover{border-color:rgba(0,212,255,.35)!important;box-shadow:0 0 0 1px rgba(0,212,255,.1),0 8px 32px rgba(0,0,0,.4)!important;transform:translateY(-2px)!important;}
-[data-testid="stMetricValue"]{color:var(--cyan)!important;font-size:1.75rem!important;font-weight:800!important;letter-spacing:-.5px!important;}
+[data-testid="stMetric"]::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ice),var(--volt));}
+[data-testid="stMetric"]:hover{border-color:rgba(204,255,0,.35)!important;box-shadow:0 0 0 1px rgba(204,255,0,.1),0 8px 32px rgba(0,0,0,.4)!important;transform:translateY(-2px)!important;}
+[data-testid="stMetricValue"]{color:var(--volt)!important;font-size:1.75rem!important;font-weight:800!important;letter-spacing:-.5px!important;}
 [data-testid="stMetricLabel"]{color:var(--t3)!important;font-size:.68rem!important;font-weight:700!important;letter-spacing:.1em!important;text-transform:uppercase!important;}
 [data-testid="stMetricDelta"]{color:var(--green)!important;font-size:.75rem!important;}
 
@@ -63,8 +85,8 @@ div[data-testid="stSidebar"] .stButton>button{
     letter-spacing:0!important;transition:all .2s!important;
 }
 div[data-testid="stSidebar"] .stButton>button:hover{
-    background:rgba(0,212,255,.07)!important;border-color:rgba(0,212,255,.2)!important;
-    color:var(--cyan)!important;transform:none!important;box-shadow:none!important;
+    background:rgba(204,255,0,.07)!important;border-color:rgba(204,255,0,.2)!important;
+    color:var(--volt)!important;transform:none!important;box-shadow:none!important;
 }
 
 /* Chart control buttons (inline above charts) */
@@ -75,8 +97,8 @@ div.ctrl-btn .stButton>button{
     box-shadow:none!important;letter-spacing:0!important;transition:all .15s!important;
 }
 div.ctrl-btn .stButton>button:hover{
-    border-color:rgba(0,212,255,.4)!important;color:var(--cyan)!important;
-    background:rgba(0,212,255,.06)!important;transform:none!important;box-shadow:none!important;
+    border-color:rgba(204,255,0,.4)!important;color:var(--volt)!important;
+    background:rgba(204,255,0,.06)!important;transform:none!important;box-shadow:none!important;
 }
 
 /* Section divider label */
@@ -88,7 +110,13 @@ div.ctrl-btn .stButton>button:hover{
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
-::-webkit-scrollbar-thumb:hover{background:var(--cyan);}
+::-webkit-scrollbar-thumb:hover{background:var(--volt);}
+
+@media (max-width: 1040px) {
+    .block-container{padding:0 1rem 2rem!important;}
+    .stButton>button{font-size:.82rem!important;}
+    .chart-wrap{padding:1rem!important;}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -104,25 +132,64 @@ def parse_locations(df_hash):
     parsed.columns = ['lon','lat']
     return df.join(parsed.astype(float))
 
+if not PLOTLY_AVAILABLE:
+    st.error(
+        'Plotly is not installed in this Python environment.\n'
+        'Please install it with `pip install plotly` and restart the app.'
+    )
+    st.stop()
+
 # ── Theme helper ───────────────────────────────────────────────────────────────
 SCALES = {
-    "Cyan → Purple": [[0,"#00D4FF"],[1,"#7C3AED"]],
-    "Purple → Pink": [[0,"#7C3AED"],[1,"#F72585"]],
-    "Green → Cyan":  [[0,"#10B981"],[1,"#00D4FF"]],
-    "Amber → Pink":  [[0,"#F59E0B"],[1,"#F72585"]],
+    "Cyan → Purple": [[0,"#CCFF00"],[1,"#2DD4BF"]],
+    "Purple → Pink": [[0,"#2DD4BF"],[1,"#FF6B35"]],
+    "Green → Cyan":  [[0,"#2DD4BF"],[1,"#CCFF00"]],
+    "Amber → Pink":  [[0,"#FF6B35"],[1,"#FF6B35"]],
 }
 
 def dt(fig, h=430, ml=55, mr=20, mt=52, mb=38):
     fig.update_layout(
-        paper_bgcolor="#0A0D14", plot_bgcolor="#0D1117",
-        font=dict(family="'Inter',sans-serif", size=11, color="#CBD5E1"),
+        paper_bgcolor="#0A0D14", plot_bgcolor="#0E0E14",
+        font=dict(family="'Manrope','IBM Plex Mono',sans-serif", size=11, color="#B0B0C0"),
         margin=dict(l=ml,r=mr,t=mt,b=mb), height=h,
-        xaxis=dict(gridcolor="#1A2236", zeroline=False, linecolor="#1E293B"),
-        yaxis=dict(gridcolor="#1A2236", zeroline=False, linecolor="#1E293B"),
-        legend=dict(bgcolor="rgba(10,13,20,.9)", bordercolor="#1E293B", borderwidth=1),
-        hoverlabel=dict(bgcolor="#111827", bordercolor="#1E293B", font_color="#E2E8F0"),
+        xaxis=dict(gridcolor="#1E1E2A", zeroline=False, linecolor="#1E1E2A"),
+        yaxis=dict(gridcolor="#1E1E2A", zeroline=False, linecolor="#1E1E2A"),
+        legend=dict(bgcolor="rgba(10,13,20,.9)", bordercolor="#1E1E2A", borderwidth=1),
+        hoverlabel=dict(bgcolor="#121218", bordercolor="#1E1E2A", font_color="#B0B0C0"),
     )
     return fig
+
+
+def generate_dashboard_report(df: pd.DataFrame, sel_county, yr, ev_type) -> tuple[bytes | str, str]:
+    title = "EV Dashboard Report"
+    summary_lines = [
+        f"EV Dashboard Report",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Selected counties: {', '.join(sel_county) if sel_county else 'All counties'}",
+        f"Model year range: {yr[0]}-{yr[1]}",
+        f"EV type filter: {ev_type}",
+        f"Total EVs: {len(df):,}",
+        f"BEV registrations: {df['Electric Vehicle Type'].str.contains('BEV', na=False).sum():,}",
+        f"PHEV registrations: {df['Electric Vehicle Type'].str.contains('PHEV', na=False).sum():,}",
+        f"Average electric range: {df[df['Electric Range'] > 0]['Electric Range'].mean():.1f} mi",
+    ]
+    content = "\n".join(summary_lines)
+
+    if FPDF is None:
+        return content.encode('utf-8'), "text/plain"
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.cell(pdf.epw, 10, title, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+    for line in summary_lines[1:]:
+        pdf.multi_cell(pdf.epw, 8, line)
+    pdf.ln(4)
+    pdf.multi_cell(pdf.epw, 8, "This report summarizes current dashboard filter selections and EV adoption insights for Washington State.")
+    return bytes(pdf.output()), "application/pdf"
+
 
 def section(label):
     st.markdown(f'<div class="sec-label">{label}</div>', unsafe_allow_html=True)
@@ -133,8 +200,8 @@ def section(label):
 with st.sidebar:
     render_sidebar()
 
-    st.markdown('<div style="height:1px;background:#1E293B;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
-    st.markdown('<div style="padding:0 1.2rem;"><div style="color:#64748B;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Global Filters</div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1px;background:#1E1E2A;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:0 1.2rem;"><div style="color:#6B6B80;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Global Filters</div></div>', unsafe_allow_html=True)
 
     df_raw = load_main()
     all_counties = sorted(df_raw['County'].dropna().unique())
@@ -143,13 +210,13 @@ with st.sidebar:
     yr = st.slider("Model Year", min_y, max_y, (2010, max_y))
     ev_type = st.radio("EV Type", ["All","BEV","PHEV"], horizontal=True)
 
-    st.markdown('<div style="height:1px;background:#1E293B;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
-    st.markdown('<div style="padding:0 1.2rem;"><div style="color:#64748B;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Map Style</div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1px;background:#1E1E2A;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:0 1.2rem;"><div style="color:#6B6B80;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;">Map Style</div></div>', unsafe_allow_html=True)
     map_choice = st.radio("Map theme", ["🌑 Dark","☀️ Light","🛰️ Street"], label_visibility="collapsed")
     MAP_STYLES = {"🌑 Dark":"carto-darkmatter","☀️ Light":"carto-positron","🛰️ Street":"open-street-map"}
     map_style = MAP_STYLES[map_choice]
 
-    st.markdown('<div style="height:1px;background:#1E293B;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1px;background:#1E1E2A;margin:.75rem 1.2rem;"></div>', unsafe_allow_html=True)
     with st.expander("⚙️  Chart appearance"):
         chart_scale = st.selectbox("Color scale", list(SCALES.keys()), index=0)
         chart_h = st.slider("Chart height", 300, 700, 430, step=10)
@@ -176,12 +243,12 @@ pct_bev = bev_n / max(len(df),1) * 100
 st.markdown(f"""
 <div style="display:flex;align-items:flex-start;justify-content:space-between;margin:1.5rem 0 1.75rem;">
     <div>
-        <div style="color:#64748B;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem;">Real-time Analytics</div>
-        <h1 style="color:#F1F5F9;font-size:1.85rem;font-weight:900;margin:0;letter-spacing:-.5px;line-height:1.1;">EV Analytics Dashboard</h1>
-        <p style="color:#64748B;margin:.3rem 0 0;font-size:.85rem;">Washington State &nbsp;·&nbsp; <strong style="color:#00D4FF;">{len(df):,}</strong> vehicles &nbsp;·&nbsp; {ev_type} filtered</p>
+        <div style="color:#6B6B80;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem;">Real-time Analytics</div>
+        <h1 style="color:#EAEAF0;font-size:1.85rem;font-weight:900;margin:0;letter-spacing:-.5px;line-height:1.1;">EV Analytics Dashboard</h1>
+        <p style="color:#6B6B80;margin:.3rem 0 0;font-size:.85rem;">Washington State &nbsp;·&nbsp; <strong style="color:#CCFF00;">{len(df):,}</strong> vehicles &nbsp;·&nbsp; {ev_type} filtered</p>
     </div>
-    <div style="display:flex;align-items:center;gap:.5rem;background:#0D1117;border:1px solid #1E293B;border-radius:12px;padding:.55rem 1rem;font-size:.75rem;color:#64748B;margin-top:.25rem;">
-        <span style="width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 8px #10B981;display:inline-block;flex-shrink:0;"></span>
+    <div style="display:flex;align-items:center;gap:.5rem;background:#0E0E14;border:1px solid #1E1E2A;border-radius:12px;padding:.55rem 1rem;font-size:.75rem;color:#6B6B80;margin-top:.25rem;">
+        <span style="width:7px;height:7px;border-radius:50%;background:#2DD4BF;box-shadow:0 0 8px #2DD4BF;display:inline-block;flex-shrink:0;"></span>
         Live · {datetime.now().strftime('%b %d, %Y')}
     </div>
 </div>
@@ -197,6 +264,46 @@ with k5: st.metric("🗺️ Counties",    f"{cty_n:,}")
 with k6: st.metric("⚡ Avg Range",   f"{avg_rng:.0f} mi" if not pd.isna(avg_rng) else "N/A")
 
 st.markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
+
+# ── Dynamic Summary ───────────────────────────────────────────────────────────
+# Generate insights based on current filters
+if len(df) > 0:
+    # Top insights
+    top_county = df['County'].value_counts().idxmax() if not df['County'].isna().all() else "N/A"
+    top_make = df['Make'].value_counts().idxmax() if not df['Make'].isna().all() else "N/A"
+    year_range = f"{yr[0]}-{yr[1]}" if yr[0] != yr[1] else str(yr[0])
+    county_count = len(sel_county) if sel_county else "all"
+    
+    insight_text = f"""
+    **Dynamic Insight:** You're currently analyzing **{len(df):,}** electric vehicles 
+    from **{county_count}** counties, focusing on model years **{year_range}**. 
+    The data reveals that **{top_county}** has the highest concentration of EVs in your selection, 
+    with **{top_make}** being the most popular make. 
+    This represents **{pct_bev:.1f}%** battery electric vehicles in the filtered dataset.
+    """
+    
+    st.info(insight_text)
+    report_bytes, report_mime = generate_dashboard_report(df, sel_county, yr, ev_type)
+    if report_mime == "application/pdf":
+        st.download_button(
+            label="⬇ Download Dashboard Report",
+            data=report_bytes,
+            file_name="ev_dashboard_report.pdf",
+            mime=report_mime,
+            use_container_width=False,
+        )
+    else:
+        st.download_button(
+            label="⬇ Download Dashboard Report (text fallback)",
+            data=report_bytes,
+            file_name="ev_dashboard_report.txt",
+            mime=report_mime,
+            use_container_width=False,
+        )
+else:
+    st.warning("No data matches your current filter criteria. Try adjusting the filters above.")
+
+st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SECTION 1 — MAP  +  COUNTY BAR
@@ -244,7 +351,7 @@ with col_map:
             fig_map = px.scatter_mapbox(
                 samp, lat='lat', lon='lon',
                 color=color_col,
-                color_discrete_sequence=['#00D4FF','#7C3AED','#F72585','#10B981','#F59E0B'],
+                color_discrete_sequence=['#CCFF00','#2DD4BF','#FF6B35','#2DD4BF','#FF6B35'],
                 color_continuous_scale='Viridis' if color_col=="Model Year" else None,
                 zoom=map_zoom, center={"lat": center_lat, "lon": center_lon},
                 mapbox_style=map_style,
@@ -252,10 +359,10 @@ with col_map:
                 opacity=map_opacity, size_max=pt_size,
             )
             fig_map.update_layout(
-                paper_bgcolor="#0A0D14" if is_dark else "#F8FAFC",
-                font_color="#CBD5E1" if is_dark else "#1E293B",
+                paper_bgcolor="#0A0D14" if is_dark else "#EAEAF0",
+                font_color="#B0B0C0" if is_dark else "#1E1E2A",
                 margin=dict(l=0,r=0,t=10,b=0), height=500,
-                legend=dict(bgcolor="rgba(10,13,20,.88)",bordercolor="#1E293B",borderwidth=1,font=dict(color="#CBD5E1",size=10)),
+                legend=dict(bgcolor="rgba(10,13,20,.88)",bordercolor="#1E1E2A",borderwidth=1,font=dict(color="#B0B0C0",size=10)),
             )
             st.plotly_chart(fig_map, use_container_width=True, config={"scrollZoom": True})
         else:
@@ -306,21 +413,21 @@ if adopt_mode in ("Annual + Cumulative","Annual only"):
     fig_trend.add_trace(go.Scatter(
         x=yearly['Model Year'], y=yearly['Registrations'],
         name='Annual', mode=mode_str,
-        line=dict(color='#00D4FF', width=2.5, shape=lshape),
-        marker=dict(size=6, color='#00D4FF'),
-        fill='tozeroy', fillcolor='rgba(0,212,255,.07)',
+        line=dict(color='#CCFF00', width=2.5, shape=lshape),
+        marker=dict(size=6, color='#CCFF00'),
+        fill='tozeroy', fillcolor='rgba(204,255,0,.07)',
     ))
 if adopt_mode in ("Annual + Cumulative","Cumulative only"):
     fig_trend.add_trace(go.Scatter(
         x=yearly['Model Year'], y=yearly['Cumulative'],
         name='Cumulative', mode='lines',
-        line=dict(color='#7C3AED', width=2.5, dash='dot', shape=lshape),
+        line=dict(color='#2DD4BF', width=2.5, dash='dot', shape=lshape),
         yaxis='y2',
     ))
     fig_trend.update_layout(
-        yaxis2=dict(overlaying='y', side='right', gridcolor="#1A2236", zeroline=False,
-                    title=dict(text="Cumulative", font=dict(color="#7C3AED", size=10)),
-                    tickfont=dict(color="#7C3AED", size=10)),
+        yaxis2=dict(overlaying='y', side='right', gridcolor="#1E1E2A", zeroline=False,
+                    title=dict(text="Cumulative", font=dict(color="#2DD4BF", size=10)),
+                    tickfont=dict(color="#2DD4BF", size=10)),
     )
 fig_trend.update_layout(hovermode='x unified', title=None)
 dt(fig_trend, h=chart_h)
@@ -349,9 +456,9 @@ with col_area:
 
     fig_area = go.Figure()
     fig_area.add_trace(go.Scatter(x=years, y=[bev_d.get(y,0) for y in years], name='BEV',
-        stackgroup='one', mode='lines', line=dict(color='#00D4FF',width=1.5), fillcolor='rgba(0,212,255,.3)'))
+        stackgroup='one', mode='lines', line=dict(color='#CCFF00',width=1.5), fillcolor='rgba(204,255,0,.3)'))
     fig_area.add_trace(go.Scatter(x=years, y=[phev_d.get(y,0) for y in years], name='PHEV',
-        stackgroup='one', mode='lines', line=dict(color='#7C3AED',width=1.5), fillcolor='rgba(124,58,237,.3)'))
+        stackgroup='one', mode='lines', line=dict(color='#2DD4BF',width=1.5), fillcolor='rgba(45,212,191,.3)'))
     fig_area.update_layout(hovermode='x unified', yaxis_title="% share" if area_pct else "Registrations")
     dt(fig_area, h=chart_h)
     st.plotly_chart(fig_area, use_container_width=True)
@@ -368,15 +475,15 @@ with col_cafv:
     cafv.columns=['Status','Count']
     if cafv_style == "Donut":
         fig_cafv = px.pie(cafv, values='Count', names='Status', hole=.52,
-                          color_discrete_sequence=['#10B981','#EF4444','#475569'])
-        fig_cafv.update_traces(textfont=dict(color='#CBD5E1',size=11),
+                          color_discrete_sequence=['#2DD4BF','#FF6B35','#3A3A4E'])
+        fig_cafv.update_traces(textfont=dict(color='#B0B0C0',size=11),
                                 marker=dict(line=dict(color='#0A0D14',width=3)))
-        fig_cafv.update_layout(paper_bgcolor="#0A0D14", font_color="#CBD5E1",
-                                legend=dict(bgcolor="rgba(10,13,20,.9)",bordercolor="#1E293B",borderwidth=1),
+        fig_cafv.update_layout(paper_bgcolor="#0A0D14", font_color="#B0B0C0",
+                                legend=dict(bgcolor="rgba(10,13,20,.9)",bordercolor="#1E1E2A",borderwidth=1),
                                 height=chart_h, margin=dict(l=20,r=20,t=20,b=20))
     else:
         fig_cafv = px.bar(cafv, x='Status', y='Count',
-                          color='Status', color_discrete_sequence=['#10B981','#EF4444','#475569'])
+                          color='Status', color_discrete_sequence=['#2DD4BF','#FF6B35','#3A3A4E'])
         fig_cafv.update_layout(showlegend=False)
         dt(fig_cafv, h=chart_h)
     st.plotly_chart(fig_cafv, use_container_width=True)
@@ -394,15 +501,15 @@ with col_pie:
     counts['Type'] = counts['Type'].str.replace('Battery Electric Vehicle','BEV').str.replace('Plug-in Hybrid Electric Vehicle','PHEV')
     if pie_style in ("Donut","Pie"):
         fig_pie = px.pie(counts, values='Count', names='Type', hole=.5 if pie_style=="Donut" else 0,
-                         color_discrete_sequence=['#00D4FF','#7C3AED'])
-        fig_pie.update_traces(textfont=dict(color='#CBD5E1',size=12),
+                         color_discrete_sequence=['#CCFF00','#2DD4BF'])
+        fig_pie.update_traces(textfont=dict(color='#B0B0C0',size=12),
                                marker=dict(line=dict(color='#0A0D14',width=3)))
-        fig_pie.update_layout(paper_bgcolor="#0A0D14", font_color="#CBD5E1", height=chart_h,
-                               legend=dict(bgcolor="rgba(10,13,20,.9)",bordercolor="#1E293B",borderwidth=1),
+        fig_pie.update_layout(paper_bgcolor="#0A0D14", font_color="#B0B0C0", height=chart_h,
+                               legend=dict(bgcolor="rgba(10,13,20,.9)",bordercolor="#1E1E2A",borderwidth=1),
                                margin=dict(l=20,r=20,t=20,b=20))
     else:
         fig_pie = px.bar(counts, x='Type', y='Count', color='Type',
-                         color_discrete_sequence=['#00D4FF','#7C3AED'])
+                         color_discrete_sequence=['#CCFF00','#2DD4BF'])
         fig_pie.update_layout(showlegend=False)
         dt(fig_pie, h=chart_h)
     st.plotly_chart(fig_pie, use_container_width=True)
@@ -442,7 +549,7 @@ if city_type == "Bar":
 else:
     fig_city = px.treemap(cdata2, path=['City'], values='EV Count',
                           color='EV Count', color_continuous_scale=SCALES[city_scale])
-    fig_city.update_layout(paper_bgcolor="#0A0D14", font_color="#CBD5E1", height=chart_h,
+    fig_city.update_layout(paper_bgcolor="#0A0D14", font_color="#B0B0C0", height=chart_h,
                             margin=dict(l=0,r=0,t=10,b=0))
 st.plotly_chart(fig_city, use_container_width=True)
 
@@ -458,7 +565,7 @@ with rd3: rng_min = st.slider("Min range filter (mi)", 0, 100, 10, key="rm", lab
 bev_df = df[df['Electric Vehicle Type'].str.contains('BEV',na=False) & (df['Electric Range']>rng_min)].copy()
 top_makes_rng = bev_df.groupby('Make').size().nlargest(top_n_rng).index.tolist()
 bev_df = bev_df[bev_df['Make'].isin(top_makes_rng)]
-PALETTE = ['#00D4FF','#7C3AED','#F72585','#10B981','#F59E0B','#EF4444','#06B6D4','#8B5CF6','#EC4899','#14B8A6','#A855F7','#F97316']
+PALETTE = ['#CCFF00','#2DD4BF','#FF6B35','#2DD4BF','#FF6B35','#FF6B35','#06B6D4','#8B5CF6','#EC4899','#14B8A6','#A855F7','#F97316']
 
 if rng_chart == "Box":
     fig_rng = px.box(bev_df, x='Make', y='Electric Range', color='Make',
@@ -491,10 +598,10 @@ pivot_wide = pivot.pivot(index='Make', columns='Model Year', values='Count').fil
 fig_hm = px.imshow(pivot_wide, color_continuous_scale='Blues',
                     labels=dict(x="Model Year",y="Make",color="Registrations"),
                     aspect="auto")
-fig_hm.update_layout(paper_bgcolor="#0A0D14", plot_bgcolor="#0D1117", font_color="#CBD5E1",
+fig_hm.update_layout(paper_bgcolor="#0A0D14", plot_bgcolor="#0E0E14", font_color="#B0B0C0",
                       height=max(250, hm_n*36+60),
-                      coloraxis_colorbar=dict(tickfont=dict(color="#CBD5E1"),title=dict(font=dict(color="#CBD5E1"))),
+                      coloraxis_colorbar=dict(tickfont=dict(color="#B0B0C0"),title=dict(font=dict(color="#B0B0C0"))),
                       margin=dict(l=90,r=20,t=20,b=40))
-fig_hm.update_xaxes(side="bottom", tickangle=-30, gridcolor="#1A2236")
-fig_hm.update_yaxes(gridcolor="#1A2236")
+fig_hm.update_xaxes(side="bottom", tickangle=-30, gridcolor="#1E1E2A")
+fig_hm.update_yaxes(gridcolor="#1E1E2A")
 st.plotly_chart(fig_hm, use_container_width=True)

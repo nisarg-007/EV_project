@@ -14,28 +14,28 @@ PARQUET_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'da
 # ── CSS (matches rest of app) ─────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-html,body,.main,[data-testid="stAppViewContainer"]{background:#08090F!important;font-family:'Inter',sans-serif!important;}
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+html,body,.main,[data-testid="stAppViewContainer"]{background:#08080C!important;font-family:'Manrope','IBM Plex Mono',sans-serif!important;}
 .block-container{max-width:1400px!important;padding:0 2rem 3rem!important;}
 header[data-testid="stHeader"]{display:none!important;}
 [data-testid="stSidebarNav"]{display:none!important;}
-[data-testid="stSidebar"]{background:#09101A!important;border-right:1px solid #1A2236!important;}
+[data-testid="stSidebar"]{background:#0A0A10!important;border-right:1px solid #1E1E2A!important;}
 [data-testid="stSidebarContent"]{padding-top:0!important;}
 div[data-testid="stSidebar"] .stButton{margin-bottom:6px!important;}
 div[data-testid="stSidebar"] .stButton>button{
-    background:transparent!important;color:#64748B!important;border:1px solid transparent!important;
+    background:transparent!important;color:#6B6B80!important;border:1px solid transparent!important;
     border-radius:10px!important;padding:.55rem .9rem!important;font-weight:500!important;
     font-size:.875rem!important;text-align:left!important;width:100%!important;
     box-shadow:none!important;transition:all .15s!important;
 }
 div[data-testid="stSidebar"] .stButton>button:hover{
-    background:rgba(0,212,255,.07)!important;border-color:rgba(0,212,255,.2)!important;
-    color:#00D4FF!important;
+    background:rgba(204,255,0,.07)!important;border-color:rgba(204,255,0,.2)!important;
+    color:#CCFF00!important;
 }
-[data-testid="stMetric"]{background:#111827!important;border:1px solid #1A2236!important;border-radius:16px!important;padding:1rem 1.25rem!important;position:relative;overflow:hidden;}
-[data-testid="stMetric"]::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#7C3AED,#00D4FF);}
-[data-testid="stMetricValue"]{color:#00D4FF!important;font-weight:800!important;}
-[data-testid="stMetricLabel"]{color:#64748B!important;font-size:.68rem!important;text-transform:uppercase!important;letter-spacing:.08em!important;}
+[data-testid="stMetric"]{background:#121218!important;border:1px solid #1E1E2A!important;border-radius:16px!important;padding:1rem 1.25rem!important;position:relative;overflow:hidden;}
+[data-testid="stMetric"]::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#2DD4BF,#CCFF00);}
+[data-testid="stMetricValue"]{color:#CCFF00!important;font-weight:800!important;}
+[data-testid="stMetricLabel"]{color:#6B6B80!important;font-size:.68rem!important;text-transform:uppercase!important;letter-spacing:.08em!important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -67,9 +67,9 @@ all_counties = sorted(ts_all["county"].dropna().unique())
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="padding:1.75rem 0 1.25rem;">
-    <div style="color:#64748B;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem;">Predictive Analytics</div>
-    <h1 style="color:#F1F5F9;font-size:1.85rem;font-weight:900;margin:0 0 .3rem;letter-spacing:-.5px;">EV Registration Forecast</h1>
-    <p style="color:#64748B;font-size:.85rem;margin:0;">County-level growth predictions using Prophet + ARIMA · Washington State 2025–2030</p>
+    <div style="color:#6B6B80;font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem;">Predictive Analytics</div>
+    <h1 style="color:#EAEAF0;font-size:1.85rem;font-weight:900;margin:0 0 .3rem;letter-spacing:-.5px;">EV Registration Forecast</h1>
+    <p style="color:#6B6B80;font-size:.85rem;margin:0;">County-level growth predictions using Prophet + ARIMA · Washington State 2025–2030</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -98,7 +98,7 @@ if not selected_counties:
     st.stop()
 
 # ── Run forecasts ─────────────────────────────────────────────────────────────
-COLORS = ["#00D4FF", "#7C3AED", "#F72585", "#10B981", "#F59E0B"]
+COLORS = ["#CCFF00", "#2DD4BF", "#FF6B35", "#2DD4BF", "#FF6B35"]
 
 try:
     from src.forecasting.forecaster import EVForecaster
@@ -130,7 +130,7 @@ for i, county in enumerate(selected_counties[:5]):
         continue
 
     try:
-        status_placeholder.markdown(f'<div style="color:#64748B;font-size:.8rem;">Running forecast for {county}…</div>', unsafe_allow_html=True)
+        status_placeholder.markdown(f'<div style="color:#6B6B80;font-size:.8rem;">Running forecast for {county}…</div>', unsafe_allow_html=True)
         fc = EVForecaster().fit(county_ts.rename(columns={"date": "date", "registrations": "registrations"}), county)
         pred = fc.predict(periods=periods)
 
@@ -175,27 +175,27 @@ status_placeholder.empty()
 
 # ── Chart ─────────────────────────────────────────────────────────────────────
 fig.update_layout(
-    paper_bgcolor="#08090F", plot_bgcolor="#0D1117",
-    font=dict(family="Inter,sans-serif", size=11, color="#CBD5E1"),
+    paper_bgcolor="#08080C", plot_bgcolor="#0E0E14",
+    font=dict(family="'Manrope','IBM Plex Mono',sans-serif", size=11, color="#B0B0C0"),
     height=500,
     margin=dict(l=60, r=30, t=40, b=50),
-    xaxis=dict(gridcolor="#1A2236", zeroline=False, title="Year", range=[f"{start_year}-01-01", f"{2024 + forecast_years}-12-31"]),
+    xaxis=dict(gridcolor="#1E1E2A", zeroline=False, title="Year", range=[f"{start_year}-01-01", f"{2024 + forecast_years}-12-31"]),
     yaxis=dict(
-        gridcolor="#1A2236", zeroline=False, title="Annual Registrations",
+        gridcolor="#1E1E2A", zeroline=False, title="Annual Registrations",
         type="log" if log_scale else "linear",
         **({
             "tickvals": [10, 100, 500, 1000, 5000, 10000, 50000, 100000],
             "ticktext": ["10", "100", "500", "1k", "5k", "10k", "50k", "100k"],
         } if log_scale else {})
     ),
-    legend=dict(bgcolor="rgba(8,9,15,.9)", bordercolor="#1A2236", borderwidth=1, font=dict(size=11)),
-    hoverlabel=dict(bgcolor="#111827", bordercolor="#1A2236", font_color="#E2E8F0"),
+    legend=dict(bgcolor="rgba(8,9,15,.9)", bordercolor="#1E1E2A", borderwidth=1, font=dict(size=11)),
+    hoverlabel=dict(bgcolor="#121218", bordercolor="#1E1E2A", font_color="#B0B0C0"),
     hovermode="x unified",
 )
 
 # Add a vertical "today" line
 fig.add_vline(x=pd.to_datetime("2023-12-31").timestamp() * 1000, line_dash="dash", line_color="rgba(100,116,139,.5)",
-              annotation_text="Today", annotation_font_color="#64748B", annotation_font_size=10)
+              annotation_text="Today", annotation_font_color="#6B6B80", annotation_font_size=10)
 
 # Add user-friendly summary
 if metrics:

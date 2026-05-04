@@ -53,15 +53,28 @@ def load_ev_data() -> pd.DataFrame:
     return df
 
 
-def enrich_with_coords(df: pd.DataFrame) -> pd.DataFrame:
-    """Attach centroid lat/lon per county (proxy for geospatial density)."""
+def parse_vehicle_locations(df: pd.DataFrame) -> pd.DataFrame:
+    """Parse raw POINT coordinates from Vehicle Location and return lat/lon columns."""
+    parsed = df["Vehicle Location"].dropna().str.extract(r"POINT \(([^ ]+) ([^)]+)\)")
+    parsed.columns = ["lon", "lat"]
+    return parsed.astype({"lon": float, "lat": float})
+
+
+def enrich_with_coords(df: pd.DataFrame, use_vehicle_location: bool = False) -> pd.DataFrame:
+    """Attach a usable lat/lon to every record, preferring vehicle location points when available."""
     df = df.copy()
-    df["lat"] = df["County"].map(lambda c: COUNTY_CENTROIDS.get(c, (None, None))[0])
-    df["lon"] = df["County"].map(lambda c: COUNTY_CENTROIDS.get(c, (None, None))[1])
-    # Add small jitter so clustering isn't trivial for same-county records
-    rng = np.random.default_rng(42)
-    df["lat"] += rng.normal(0, 0.15, len(df))
-    df["lon"] += rng.normal(0, 0.20, len(df))
+    if use_vehicle_location and "Vehicle Location" in df.columns:
+        coords = parse_vehicle_locations(df)
+        df["lat"] = coords["lat"]
+        df["lon"] = coords["lon"]
+    else:
+        df["lat"] = df["County"].map(lambda c: COUNTY_CENTROIDS.get(c, (None, None))[0])
+        df["lon"] = df["County"].map(lambda c: COUNTY_CENTROIDS.get(c, (None, None))[1])
+        # Add small jitter so clustering isn't noticably obscured when all points share a county centroid.
+        rng = np.random.default_rng(42)
+        df["lat"] += rng.normal(0, 0.15, len(df))
+        df["lon"] += rng.normal(0, 0.20, len(df))
+
     return df.dropna(subset=["lat", "lon"])
 
 
@@ -85,9 +98,9 @@ def build_map(df: pd.DataFrame, centers: np.ndarray, labels: np.ndarray) -> foli
             folium.CircleMarker(
                 location=[float(coords[0]), float(coords[1])],
                 radius=float(max(4, min(30, row["count"] / 500))),
-                color="#00D4FF",
+                color="#CCFF00",
                 fill=True,
-                fill_color="#00D4FF",
+                fill_color="#CCFF00",
                 fill_opacity=0.35,
                 popup=f"{row['County']} County: {row['count']:,} EVs",
                 tooltip=f"{row['County']}: {row['count']:,}",
@@ -99,10 +112,10 @@ def build_map(df: pd.DataFrame, centers: np.ndarray, labels: np.ndarray) -> foli
             location=[float(lat), float(lon)],
             icon=folium.DivIcon(
                 html=(
-                    '<div style="background:#7C3AED;color:white;border-radius:50%;'
+                    '<div style="background:#2DD4BF;color:white;border-radius:50%;'
                     'width:28px;height:28px;display:flex;align-items:center;'
                     'justify-content:center;font-size:14px;font-weight:bold;'
-                    'box-shadow:0 0 8px rgba(124,58,237,.7);">⚡</div>'
+                    'box-shadow:0 0 8px rgba(45,212,191,.7);">⚡</div>'
                 ),
                 icon_size=(28, 28),
                 icon_anchor=(14, 14),
@@ -142,31 +155,31 @@ def centroids_to_geojson(centers: np.ndarray) -> dict:
 def render():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-    html,body,.main,[data-testid="stAppViewContainer"]{background:#08090F!important;font-family:'Inter',sans-serif!important;}
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+    html,body,.main,[data-testid="stAppViewContainer"]{background:#08080C!important;font-family:'Manrope','IBM Plex Mono',sans-serif!important;}
     .block-container{max-width:1400px!important;padding:0 2rem 3rem!important;}
     header[data-testid="stHeader"]{display:none!important;}
     [data-testid="stSidebarNav"]{display:none!important;}
-    [data-testid="stSidebar"]{background:#09101A!important;border-right:1px solid #1A2236!important;}
+    [data-testid="stSidebar"]{background:#0A0A10!important;border-right:1px solid #1E1E2A!important;}
     [data-testid="stSidebarContent"]{padding-top:0!important;}
-    [data-testid="stMetricValue"]{color:#00D4FF!important;font-weight:800!important;}
-    [data-testid="stMetricLabel"]{color:#64748B!important;font-size:0.7rem!important;text-transform:uppercase!important;letter-spacing:.08em!important;}
-    [data-testid="stMetric"]{background:#111827!important;border:1px solid #1A2236!important;border-radius:16px!important;padding:1rem 1.25rem!important;}
+    [data-testid="stMetricValue"]{color:#CCFF00!important;font-weight:800!important;}
+    [data-testid="stMetricLabel"]{color:#6B6B80!important;font-size:0.7rem!important;text-transform:uppercase!important;letter-spacing:.08em!important;}
+    [data-testid="stMetric"]{background:#121218!important;border:1px solid #1E1E2A!important;border-radius:16px!important;padding:1rem 1.25rem!important;}
     </style>
     """, unsafe_allow_html=True)
 
     # Sidebar nav
     with st.sidebar:
         render_sidebar()
-        st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#475569;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Simulation Controls</span></div>', unsafe_allow_html=True)
+        st.markdown('<div style="padding:0.75rem 1.25rem 0.25rem;"><span style="color:#3A3A4E;font-size:0.6rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">Simulation Controls</span></div>', unsafe_allow_html=True)
 
     # Page header
     st.markdown("""
     <div style="padding:1.75rem 0 1rem;">
-        <h1 style="color:#F1F5F9;font-size:2rem;font-weight:800;margin:0 0 .3rem;letter-spacing:-.5px;">
+        <h1 style="color:#EAEAF0;font-size:2rem;font-weight:800;margin:0 0 .3rem;letter-spacing:-.5px;">
             ⚡ Charger Placement Optimizer
         </h1>
-        <p style="color:#64748B;font-size:.9rem;margin:0;">
+        <p style="color:#6B6B80;font-size:.9rem;margin:0;">
             K-Means clustering on 276k+ EV registrations to identify optimal fast-charger locations across Washington State.
         </p>
     </div>
@@ -177,6 +190,10 @@ def render():
     with col_ctrl1:
         k = st.slider("Charger Stations", min_value=5, max_value=100, value=20, step=5,
                       help="Number of proposed charger locations (cluster centroids)")
+        use_vehicle_location = st.checkbox(
+            "Use actual Vehicle Location GPS points",
+            value=True,
+            help="Cluster on real vehicle coordinates when available instead of county centroids.")
     with col_ctrl2:
         min_density = st.slider("Min EV Count Filter", min_value=0, max_value=5000, value=0, step=100,
                                 help="Exclude counties with fewer EVs than this threshold")
@@ -189,7 +206,7 @@ def render():
     with st.spinner("Loading EV data…"):
         df_raw = load_ev_data()
 
-    df = enrich_with_coords(df_raw)
+    df = enrich_with_coords(df_raw, use_vehicle_location=use_vehicle_location)
 
     if selected_counties:
         df = df[df["County"].isin(selected_counties)]
@@ -218,20 +235,21 @@ def render():
 
     st.markdown("<div style='height:.75rem'></div>", unsafe_allow_html=True)
     c_list = "all counties" if not selected_counties else ", ".join(selected_counties)
-    st.info(f"**Insight:** You are analyzing {len(df):,} EVs across {c_list} to find the {k} most optimal locations for new fast-chargers. The algorithm has placed these {k} stations at the center of the densest EV population clusters to minimize driving distance for the maximum number of EV owners.")
+    coord_source = "real vehicle GPS locations" if use_vehicle_location else "county centroid proxies"
+    st.info(f"**Insight:** You are analyzing {len(df):,} EVs across {c_list} to find the {k} most optimal locations for new fast-chargers. The algorithm is using {coord_source} to derive cluster centroids and minimize driving distance for the maximum number of EV owners.")
 
     # Map + What-if panel
     map_col, panel_col = st.columns([3, 1])
 
     with map_col:
-        st.markdown('<div style="color:#94A3B8;font-size:.78rem;margin-bottom:.4rem;">Click any point on the map to run the What-If radius analysis.</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color:#6B6B80;font-size:.78rem;margin-bottom:.4rem;">Click any point on the map to run the What-If radius analysis.</div>', unsafe_allow_html=True)
         fmap = build_map(df, centers, labels)
         map_data = st_folium(fmap, use_container_width=True, height=520, key="optimizer_map")
 
     with panel_col:
         st.markdown("""
-        <div style="background:#111827;border:1px solid #1A2236;border-radius:16px;padding:1.25rem;">
-            <div style="color:#F1F5F9;font-weight:700;font-size:.9rem;margin-bottom:.75rem;">What-If Panel</div>
+        <div style="background:#121218;border:1px solid #1E1E2A;border-radius:16px;padding:1.25rem;">
+            <div style="color:#EAEAF0;font-weight:700;font-size:.9rem;margin-bottom:.75rem;">What-If Panel</div>
         """, unsafe_allow_html=True)
 
         clicked = map_data.get("last_clicked") if map_data else None
@@ -240,20 +258,20 @@ def render():
             nearby = evs_within_radius(df, lat_c, lon_c, radius_mi=10)
             st.markdown(f"""
             <div style="margin-bottom:.6rem;">
-                <div style="color:#64748B;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;">Selected Location</div>
-                <div style="color:#00D4FF;font-weight:600;font-size:.85rem;">{lat_c:.4f}, {lon_c:.4f}</div>
+                <div style="color:#6B6B80;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;">Selected Location</div>
+                <div style="color:#CCFF00;font-weight:600;font-size:.85rem;">{lat_c:.4f}, {lon_c:.4f}</div>
             </div>
-            <div style="background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);border-radius:10px;padding:.8rem;text-align:center;margin-bottom:0.8rem;">
-                <div style="color:#64748B;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;">EVs within 10 mi</div>
-                <div style="color:#00D4FF;font-size:1.75rem;font-weight:800;">{nearby:,}</div>
+            <div style="background:rgba(204,255,0,.07);border:1px solid rgba(204,255,0,.2);border-radius:10px;padding:.8rem;text-align:center;margin-bottom:0.8rem;">
+                <div style="color:#6B6B80;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;">EVs within 10 mi</div>
+                <div style="color:#CCFF00;font-size:1.75rem;font-weight:800;">{nearby:,}</div>
             </div>
-            <div style="color:#E2E8F0;font-size:.8rem;line-height:1.4;">
+            <div style="color:#B0B0C0;font-size:.8rem;line-height:1.4;">
                 <strong>Simulation Summary:</strong> If you build a new charging station at these exact coordinates, it will immediately serve <strong>{nearby:,}</strong> electric vehicles within a 10-mile radius based on current registrations.
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown("""
-            <div style="color:#475569;font-size:.8rem;text-align:center;padding:1rem 0;">
+            <div style="color:#3A3A4E;font-size:.8rem;text-align:center;padding:1rem 0;">
                 Click a location on the map to see estimated EVs within 10-mile radius.
             </div>
             """, unsafe_allow_html=True)

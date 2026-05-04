@@ -65,9 +65,9 @@ DARK_TEMPLATE = dict(
 
 def _apply_dark_layout(fig):
     fig.update_layout(
-        paper_bgcolor="#0D1117",
-        plot_bgcolor="#0D1117",
-        font=dict(color="#CBD5E1")
+        paper_bgcolor="#0E0E14",
+        plot_bgcolor="#0E0E14",
+        font=dict(color="#B0B0C0")
     )
     return fig
 
@@ -173,7 +173,7 @@ def _line(df: pd.DataFrame, title: str, x_label: str, y_label: str):
         markers=True,
         **DARK_TEMPLATE,
     )
-    fig.update_traces(line_color="#00D4FF", marker_color="#7C3AED")
+    fig.update_traces(line_color="#CCFF00", marker_color="#2DD4BF")
     return _apply_dark_layout(fig)
 
 

@@ -1,5 +1,10 @@
+import io
+import os
+from typing import Optional
+
 import pandas as pd
 import duckdb
+import requests
 
 def get_ev_counts_by_county(parquet_path: str = '../data/processed/Electric_Vehicle_Population_Data.parquet') -> pd.DataFrame:
     """
@@ -127,6 +132,33 @@ def get_county_growth_comparison(county1: str, county2: str, parquet_path: str =
         ORDER BY "Model Year" ASC
     """
     return duckdb.query(query).to_df()
+
+
+def fetch_wadot_data(api_url: Optional[str] = None, timeout: int = 20) -> pd.DataFrame:
+    """Fetch updated EV registration data from the WA DOL/DoT API if configured."""
+    api_url = api_url or os.getenv("WA_DOL_API_URL")
+    if not api_url:
+        raise ValueError("WA_DOL_API_URL is not configured. Provide an API URL to fetch real-time data.")
+
+    response = requests.get(api_url, timeout=timeout)
+    response.raise_for_status()
+    content_type = response.headers.get("content-type", "")
+
+    if "csv" in content_type or api_url.lower().endswith(".csv"):
+        return pd.read_csv(io.StringIO(response.text))
+
+    payload = response.json()
+    if isinstance(payload, dict) and "data" in payload:
+        payload = payload["data"]
+
+    return pd.DataFrame(payload)
+
+
+def refresh_ev_data_from_api(parquet_path: str = '../data/processed/Electric_Vehicle_Population_Data.parquet', api_url: Optional[str] = None) -> pd.DataFrame:
+    """Refresh the local parquet dataset from the configured WA DOL API feed."""
+    df = fetch_wadot_data(api_url=api_url)
+    df.to_parquet(parquet_path, index=False)
+    return df
 
 if __name__ == "__main__":
     # Test our expanded tool suite

@@ -36,7 +36,7 @@ _KPI_CSS = """
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #7C3AED, #00D4FF);
+    background: linear-gradient(90deg, #2DD4BF, #CCFF00);
 }
 .kpi-card:hover {
     transform: translateY(-3px);
@@ -44,7 +44,7 @@ _KPI_CSS = """
     border-color: rgba(0, 212, 255, 0.22);
 }
 .kpi-label {
-    color: #64748B;
+    color: #6B6B80;
     font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -52,14 +52,14 @@ _KPI_CSS = """
     margin-bottom: 0.45rem;
 }
 .kpi-value {
-    color: #00D4FF;
+    color: #CCFF00;
     font-size: 1.75rem;
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.1;
 }
 .kpi-delta {
-    color: #10B981;
+    color: #2DD4BF;
     font-size: 0.74rem;
     font-weight: 600;
     margin-top: 0.3rem;

@@ -122,7 +122,8 @@ def embed_and_upsert(index, chunks: list[dict], batch_size: int = 50):
     vectors = []
     for chunk_meta in chunks:
         try:
-            response = ollama.embeddings(model=EMBEDDING_MODEL, prompt=chunk_meta["text"])
+            client = ollama.Client(host="http://127.0.0.1:11434")
+            response = client.embeddings(model=EMBEDDING_MODEL, prompt=chunk_meta["text"])
             embedding = response["embedding"]
             metadata = {
                 "text": chunk_meta["text"],

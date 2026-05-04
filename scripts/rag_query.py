@@ -35,7 +35,7 @@ LLM_MODEL       = "llama3.2"
 
 def _get_embeddings() -> OllamaEmbeddings:
     """Return a configured OllamaEmbeddings instance."""
-    return OllamaEmbeddings(model=EMBEDDING_MODEL)
+    return OllamaEmbeddings(model=EMBEDDING_MODEL, base_url="http://127.0.0.1:11434")
 
 
 def _get_vectorstore() -> PineconeVectorStore:
@@ -119,7 +119,7 @@ def answer_with_rag(question: str, top_k: int = 5) -> str:
 
     # ── Build LCEL chain ──────────────────────────────────────────────────────
     retriever = vectorstore.as_retriever(search_kwargs={"k": top_k})
-    llm       = ChatOllama(model=LLM_MODEL)
+    llm       = ChatOllama(model=LLM_MODEL, base_url="http://127.0.0.1:11434")
 
     prompt = ChatPromptTemplate.from_template(
         "You are an expert on EV policy. Answer the question using ONLY the "
